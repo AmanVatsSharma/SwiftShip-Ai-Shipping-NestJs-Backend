@@ -1,0 +1,141 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+  roles     Role[]   @relation("UserRoles")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  orderNumber String      @unique
+  total       Float
+  status      OrderStatus
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  carrierId Int?
+  carrier   Carrier?   @relation(fields: [carrierId], references: [id])
+  shipments Shipment[]
+  returns   Return[]     @relation("OrderReturns")
+}
+
+model Carrier {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  apiKey        String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  orders        Order[]
+  shippingRates ShippingRate[]
+  shipments     Shipment[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model ShippingRate {
+  id                    Int      @id @default(autoincrement())
+  carrierId             Int
+  serviceName           String
+  rate                  Float
+  estimatedDeliveryDays Int
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  carrier Carrier @relation(fields: [carrierId], references: [id])
+}
+
+model Shipment {
+  id             Int            @id @default(autoincrement())
+  trackingNumber String
+  status         ShipmentStatus
+  orderId        Int
+  carrierId      Int
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  carrier Carrier @relation(fields: [carrierId], references: [id])
+}
+
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model Return {
+  id                Int          @id @default(autoincrement())
+  returnNumber      String       @unique
+  status            ReturnStatus
+  reason            String
+  pickupScheduledAt DateTime?
+  orderId           Int
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  order             Order         @relation("OrderReturns", fields: [orderId], references: [id])
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model ShopifyStore {
+  id          String        @id @default(uuid())
+  shopDomain  String        @unique
+  accessToken String
+  connectedAt DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  orders      ShopifyOrder[]
+}
+
+model ShopifyOrder {
+  id              String    @id @default(uuid())
+  orderNumber     String    @unique
+  total           Float
+  status          String
+  storeId         String
+  shopifyCreatedAt DateTime?
+  processedAt     DateTime?
+  currency        String?
+  customerEmail   String?
+  customerName    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime? @updatedAt
+  
+  store           ShopifyStore @relation(fields: [storeId], references: [id])
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  users       User[]   @relation("UserRoles")
+}
