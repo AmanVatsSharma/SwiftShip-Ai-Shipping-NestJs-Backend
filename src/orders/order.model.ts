@@ -1,14 +1,9 @@
 import { ObjectType, Field, Int, Float, registerEnumType } from '@nestjs/graphql';
+import { OrderStatus } from '@prisma/client';
 
-export enum OrderStatus {
-  PENDING = "PENDING",
-  PAID = "PAID",
-  CANCELLED = "CANCELLED",
-  REFUNDED = "REFUNDED"
-}
-
+// Reuse Prisma enum to avoid TS incompatibilities between layers
 registerEnumType(OrderStatus, {
-  name: 'OrderStatus'
+  name: 'OrderStatus',
 });
 
 @ObjectType()
@@ -35,5 +30,7 @@ export class Order {
   userId: number;
 
   @Field(() => Int, { nullable: true })
-  carrierId?: number;
+  carrierId: number | null;
 } 
+
+export { OrderStatus };
