@@ -18,7 +18,8 @@ export class OrdersResolver {
     description: 'Get all orders ordered by creation date (newest first)'
   })
   async getOrders(): Promise<Order[]> {
-    return this.ordersService.getOrders();
+    const orders = await this.ordersService.getOrders();
+    return orders.map((o: any) => this.mapOrder(o));
   }
 
   /**
@@ -34,7 +35,8 @@ export class OrdersResolver {
     @Args('id', { type: () => Int, description: 'The ID of the order' }) 
     id: number
   ): Promise<Order> {
-    return this.ordersService.getOrder(id);
+    const order = await this.ordersService.getOrder(id);
+    return this.mapOrder(order);
   }
 
   /**
@@ -49,7 +51,8 @@ export class OrdersResolver {
     @Args('createOrderInput', { description: 'Order creation data' }) 
     createOrderInput: CreateOrderInput
   ): Promise<Order> {
-    return this.ordersService.createOrder(createOrderInput);
+    const order = await this.ordersService.createOrder(createOrderInput);
+    return this.mapOrder(order);
   }
 
   /**
@@ -64,7 +67,8 @@ export class OrdersResolver {
     @Args('updateOrderInput', { description: 'Order update data' }) 
     updateOrderInput: UpdateOrderInput
   ): Promise<Order> {
-    return this.ordersService.updateOrder(updateOrderInput);
+    const order = await this.ordersService.updateOrder(updateOrderInput);
+    return this.mapOrder(order);
   }
 
   /**
@@ -79,7 +83,8 @@ export class OrdersResolver {
     @Args('id', { type: () => Int, description: 'The ID of the order to delete' }) 
     id: number
   ): Promise<Order> {
-    return this.ordersService.deleteOrder(id);
+    const order = await this.ordersService.deleteOrder(id);
+    return this.mapOrder(order);
   }
 
   /**
@@ -95,7 +100,8 @@ export class OrdersResolver {
     @Args('ordersFilterInput', { description: 'Filter criteria for orders' }) 
     filter: OrdersFilterInput
   ): Promise<Order[]> {
-    return this.ordersService.filterOrders(filter);
+    const orders = await this.ordersService.filterOrders(filter);
+    return orders.map((o: any) => this.mapOrder(o));
   }
 
   /**
@@ -111,7 +117,8 @@ export class OrdersResolver {
     @Args('userId', { type: () => Int, description: 'The user ID to filter by' }) 
     userId: number
   ): Promise<Order[]> {
-    return this.ordersService.getOrdersByUser(userId);
+    const orders = await this.ordersService.getOrdersByUser(userId);
+    return orders.map((o: any) => this.mapOrder(o));
   }
 
   /**
@@ -127,7 +134,8 @@ export class OrdersResolver {
     @Args('status', { type: () => OrderStatus, description: 'The status to filter by' }) 
     status: OrderStatus
   ): Promise<Order[]> {
-    return this.ordersService.getOrdersByStatus(status);
+    const orders = await this.ordersService.getOrdersByStatus(status);
+    return orders.map((o: any) => this.mapOrder(o));
   }
 
   /**
@@ -153,5 +161,21 @@ export class OrdersResolver {
   })
   async getTotalSales(): Promise<number> {
     return this.ordersService.getTotalSales();
+  }
+
+  /**
+   * Map a Prisma order entity to GraphQL Order type
+   */
+  private mapOrder(order: any): Order {
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      userId: order.userId,
+      carrierId: order.carrierId ?? null,
+    };
   }
 } 
