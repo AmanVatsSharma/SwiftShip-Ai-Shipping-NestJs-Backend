@@ -2,9 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Raw body for Shopify webhook signature verification
+  app.use('/shopify/webhook', bodyParser.raw({ type: '*/*' }));
   // Security headers
   app.use(helmet());
   // CORS
