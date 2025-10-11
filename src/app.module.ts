@@ -18,6 +18,7 @@ import { PluginsModule } from './plugins/plugins.module';
 import { RolesModule } from './users/roles.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,8 @@ import { APP_GUARD } from '@nestjs/core';
         CORS_ORIGIN: Joi.string().optional(),
         SHOPIFY_API_KEY: Joi.string().optional(),
         SHOPIFY_API_SECRET: Joi.string().optional(),
+        JWT_SECRET: Joi.string().default('dev-secret'),
+        JWT_EXPIRES_IN: Joi.string().default('15m'),
       }),
     }),
     ThrottlerModule.forRoot({
@@ -48,6 +51,7 @@ import { APP_GUARD } from '@nestjs/core';
     ReturnsModule,
     PluginsModule,
     RolesModule,
+    AuthModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
