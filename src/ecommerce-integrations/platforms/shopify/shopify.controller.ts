@@ -4,10 +4,15 @@ import { Response } from 'express';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { ShopifyIntegrationService } from './services/shopify-integration.service';
 
 @Controller('shopify')
 export class ShopifyController {
-  constructor(private readonly config: ConfigService, private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+    private readonly shopifyIntegration: ShopifyIntegrationService,
+  ) {}
 
   @Get('oauth/start')
   start(@Query('shop') shop: string, @Res() res: Response) {
@@ -49,6 +54,9 @@ export class ShopifyController {
       update: { accessToken },
       create: { shopDomain: shop, accessToken },
     });
+
+    // Register default webhooks
+    await this.shopifyIntegration.registerDefaultWebhooks(shop, accessToken);
 
     // Redirect to GraphQL (or app dashboard)
     res.redirect('/graphql');
