@@ -31,6 +31,8 @@ import { AuthModule } from './auth/auth.module';
         CORS_ORIGIN: Joi.string().optional(),
         SHOPIFY_API_KEY: Joi.string().optional(),
         SHOPIFY_API_SECRET: Joi.string().optional(),
+        SHOPIFY_APP_URL: Joi.string().uri().optional(),
+        SHOPIFY_SCOPES: Joi.string().optional(),
         JWT_SECRET: Joi.string().default('dev-secret'),
         JWT_EXPIRES_IN: Joi.string().default('15m'),
       }),

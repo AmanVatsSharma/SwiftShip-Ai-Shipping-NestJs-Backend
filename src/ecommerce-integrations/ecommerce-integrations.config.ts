@@ -32,6 +32,16 @@ export const ecommerceIntegrationsConfig = registerAs('ecommerceIntegrations', (
      * Rate limit for requests to Shopify API per second
      */
     rateLimit: parseInt(process.env.SHOPIFY_RATE_LIMIT || '2', 10),
+
+    /**
+     * Public app URL used for OAuth callback
+     */
+    appUrl: process.env.SHOPIFY_APP_URL,
+
+    /**
+     * OAuth scopes (comma-separated)
+     */
+    scopes: process.env.SHOPIFY_SCOPES || 'read_orders,write_orders',
   },
   
   /**
