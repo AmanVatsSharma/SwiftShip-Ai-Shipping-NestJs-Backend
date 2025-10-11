@@ -7,6 +7,8 @@ import { ShopifyIntegrationService } from './services/shopify-integration.servic
 import { ShopifyOrdersService } from './services/shopify-orders.service';
 import { ShopifyIntegrationResolver } from './resolvers/shopify-integration.resolver';
 import { ShopifyOrdersResolver } from './resolvers/shopify-orders.resolver';
+import { ShopifyController } from './shopify.controller';
+import { ShopifyWebhookController } from './shopify.webhook.controller';
 
 /**
  * Shopify Integration Module
@@ -30,5 +32,6 @@ import { ShopifyOrdersResolver } from './resolvers/shopify-orders.resolver';
     ShopifyIntegrationService,
     ShopifyOrdersService,
   ],
+  controllers: [ShopifyController, ShopifyWebhookController],
 })
 export class ShopifyModule {} 

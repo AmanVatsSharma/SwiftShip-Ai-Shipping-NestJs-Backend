@@ -23,29 +23,46 @@ export class PluginManagerService {
    * Discover and load all plugins from the plugins directory
    */
   discoverAndLoadPlugins() {
-    const pluginsPath = path.join(process.cwd(), 'src', 'plugins');
-    if (!fs.existsSync(pluginsPath)) {
-      this.logger.warn(`Plugins directory does not exist: ${pluginsPath}`);
+    // Prefer compiled JS plugins in production builds
+    const candidates = [
+      // When compiled, this file lives under dist/src/plugins
+      path.join(__dirname),
+      // Fallbacks depending on build layout
+      path.join(process.cwd(), 'dist', 'src', 'plugins'),
+      path.join(process.cwd(), 'dist', 'plugins'),
+      // Last resort: source directory (useful in dev with ts-node)
+      path.join(process.cwd(), 'src', 'plugins'),
+    ];
+
+    const pluginsPath = candidates.find((p) => fs.existsSync(p));
+    if (!pluginsPath) {
+      this.logger.warn(`Plugins directory not found in candidates: ${candidates.join(', ')}`);
       return;
     }
+
     const files = fs.readdirSync(pluginsPath);
+    const isProd = process.env.NODE_ENV === 'production';
+
     for (const file of files) {
-      if (file.endsWith('.plugin.js') || file.endsWith('.plugin.ts')) {
-        const pluginPath = path.join(pluginsPath, file);
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const pluginModule = require(pluginPath);
-          const plugin: Plugin = pluginModule.default || pluginModule;
-          if (plugin && plugin.name && plugin.version) {
-            this.plugins.push(plugin);
-            plugin.onRegister?.();
-            this.logger.log(`Loaded plugin: ${plugin.name} v${plugin.version}`);
-          } else {
-            this.logger.warn(`Invalid plugin file: ${file}`);
-          }
-        } catch (err) {
-          this.logger.error(`Failed to load plugin ${file}:`, err);
+      // In production only load compiled JS; in dev allow TS as well
+      const isPluginJs = file.endsWith('.plugin.js');
+      const isPluginTs = file.endsWith('.plugin.ts');
+      if (!(isPluginJs || (!isProd && isPluginTs))) continue;
+
+      const pluginPath = path.join(pluginsPath, file);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pluginModule = require(pluginPath);
+        const plugin: Plugin = pluginModule.default || pluginModule;
+        if (plugin && plugin.name && plugin.version) {
+          this.plugins.push(plugin);
+          plugin.onRegister?.();
+          this.logger.log(`Loaded plugin: ${plugin.name} v${plugin.version}`);
+        } else {
+          this.logger.warn(`Invalid plugin file: ${file}`);
         }
+      } catch (err) {
+        this.logger.error(`Failed to load plugin ${file}:`, err);
       }
     }
   }

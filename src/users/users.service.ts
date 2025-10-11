@@ -20,7 +20,6 @@ export class UsersService {
       }
       return await this.prisma.user.create({ 
         data,
-        include: { roles: true },
       });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -36,7 +35,6 @@ export class UsersService {
     try {
       return await this.prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { roles: true },
       });
     } catch (error) {
       throw new InternalServerErrorException('Failed to retrieve users');
@@ -45,7 +43,7 @@ export class UsersService {
 
   async findOne(id: number): Promise<PrismaUser> {
     try {
-      const user = await this.prisma.user.findUnique({ where: { id }, include: { roles: true } });
+      const user = await this.prisma.user.findUnique({ where: { id } });
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
@@ -60,7 +58,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<PrismaUser | null> {
     try {
-      return await this.prisma.user.findUnique({ where: { email }, include: { roles: true } });
+      return await this.prisma.user.findUnique({ where: { email } });
     } catch (error) {
       throw new InternalServerErrorException('Failed to retrieve user by email');
     }
@@ -90,7 +88,6 @@ export class UsersService {
       return await this.prisma.user.update({ 
         where: { id }, 
         data,
-        include: { roles: true },
       });
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ConflictException) {
@@ -103,7 +100,7 @@ export class UsersService {
   async remove(id: number): Promise<PrismaUser> {
     try {
       await this.findOne(id);
-      return await this.prisma.user.delete({ where: { id }, include: { roles: true } });
+      return await this.prisma.user.delete({ where: { id } });
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;

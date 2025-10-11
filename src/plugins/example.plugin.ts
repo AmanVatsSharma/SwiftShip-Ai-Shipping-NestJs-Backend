@@ -28,4 +28,4 @@ const ExamplePlugin: Plugin = {
   },
 };
 
-export = ExamplePlugin; 
+export default ExamplePlugin;

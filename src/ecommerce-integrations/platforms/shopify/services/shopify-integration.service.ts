@@ -21,6 +21,36 @@ export class ShopifyIntegrationService implements EcommercePlatform<ShopifyStore
     this.logger.log(`Using Shopify API version: ${this.apiVersion}`);
   }
 
+  async registerDefaultWebhooks(shopDomain: string, accessToken: string): Promise<void> {
+    const appUrl = this.configService.get<string>('ecommerceIntegrations.shopify.appUrl') ?? '';
+    const topics = ['orders/create', 'orders/updated'];
+    const version = this.apiVersion;
+    const baseUrl = `https://${shopDomain}/admin/api/${version}/webhooks.json`;
+    for (const topic of topics) {
+      try {
+        await lastValueFrom(
+          this.httpService.post(
+            baseUrl,
+            {
+              webhook: {
+                topic,
+                address: `${appUrl}/shopify/webhook`,
+                format: 'json',
+              },
+            },
+            {
+              headers: { 'X-Shopify-Access-Token': accessToken },
+              timeout: 8000,
+            }
+          )
+        );
+        this.logger.log(`Registered Shopify webhook: ${topic}`);
+      } catch (error) {
+        this.logger.error(`Failed to register webhook ${topic}: ${error?.message ?? error}`);
+      }
+    }
+  }
+
   async connectStore(connectStoreInput: ConnectStoreInput): Promise<ShopifyStore> {
     this.logger.log(`Connecting Shopify store: ${connectStoreInput.shopDomain}`);
     
