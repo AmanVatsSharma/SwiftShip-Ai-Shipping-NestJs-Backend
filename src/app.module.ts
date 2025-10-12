@@ -19,6 +19,7 @@ import { RolesModule } from './users/roles.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AuthModule } from './auth/auth.module';
     PluginsModule,
     RolesModule,
     AuthModule,
+    OnboardingModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

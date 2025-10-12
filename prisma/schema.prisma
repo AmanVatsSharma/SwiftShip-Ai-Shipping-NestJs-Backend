@@ -15,6 +15,7 @@ model User {
   updatedAt DateTime @updatedAt
   orders    Order[]
   roles     Role[]   @relation("UserRoles")
+  onboarding OnboardingState?
 }
 
 model Order {
@@ -145,4 +146,36 @@ model Role {
   name        String   @unique
   description String?
   users       User[]   @relation("UserRoles")
+}
+
+/// Tracks account onboarding milestones (AOM) for a user
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+model OnboardingState {
+  id                     Int               @id @default(autoincrement())
+  userId                 Int               @unique
+  status                 OnboardingStatus  @default(NOT_STARTED)
+  // milestone flags
+  kycSubmitted           Boolean           @default(false)
+  kycApproved            Boolean           @default(false)
+  pickupAddressAdded     Boolean           @default(false)
+  pickupVerified         Boolean           @default(false)
+  carrierConnected       Boolean           @default(false)
+  ecommerceConnected     Boolean           @default(false)
+  paymentsConfigured     Boolean           @default(false)
+  testLabelGenerated     Boolean           @default(false)
+  firstPickupScheduled   Boolean           @default(false)
+  // computed guidance
+  nextAction             String?
+  blockedReason          String?
+  metadata               Json?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  user                   User              @relation(fields: [userId], references: [id])
 }
