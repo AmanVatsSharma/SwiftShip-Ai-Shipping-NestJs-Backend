@@ -24,4 +24,12 @@ export class ShipmentsGateway implements OnGatewayInit, OnGatewayConnection, OnG
   notifyShipmentUpdate(updatedShipment: any) {
     this.server.emit('shipmentUpdate', updatedShipment);
   }
+
+  notifyLabelCreated(label: any) {
+    this.server.emit('labelCreated', label);
+  }
+
+  notifyTrackingEvent(event: any) {
+    this.server.emit('trackingEvent', event);
+  }
 } 

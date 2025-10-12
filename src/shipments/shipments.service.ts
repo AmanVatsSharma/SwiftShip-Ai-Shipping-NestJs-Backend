@@ -7,10 +7,11 @@ import { ShipmentsFilterInput } from './shipments-filter.input';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateLabelInput } from './create-label.input';
 import { IngestTrackingInput } from './ingest-tracking.input';
+import { CarrierAdapterService } from '../carriers/carrier-adapter.service';
 
 @Injectable()
 export class ShipmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private carrierAdapters: CarrierAdapterService) {}
 
   async getShipment(id: number): Promise<ShipmentEntity> {
     const shipment = await this.prisma.shipment.findUnique({ where: { id } });
@@ -142,19 +143,19 @@ export class ShipmentsService {
   async createLabel(input: CreateLabelInput) {
     const shipment = await this.getShipment(input.shipmentId);
     // Fallback deterministic label number for now
-    const labelNumber = `LBL-${shipment.id}-${Date.now()}`;
     const carrier = await this.prisma.carrier.findUnique({ where: { id: shipment.carrierId } });
     if (!carrier) throw new BadRequestException(`Carrier with ID ${shipment.carrierId} not found`);
-
+    const adapter = this.carrierAdapters.getAdapter(carrier.name) ?? this.carrierAdapters.getAdapter('SANDBOX');
+    const generated = await adapter!.generateLabel({ shipmentId: shipment.id, trackingNumber: shipment.trackingNumber, format: (input.format as any) ?? 'PDF' });
     const label = await this.prisma.shippingLabel.create({
       data: {
         shipmentId: shipment.id,
-        labelNumber,
-        carrierCode: carrier.name,
-        serviceName: null,
-        format: input.format ?? 'PDF',
+        labelNumber: generated.labelNumber,
+        carrierCode: generated.carrierCode,
+        serviceName: generated.serviceName ?? null,
+        format: generated.format,
         status: LabelStatus.GENERATED,
-        labelUrl: null,
+        labelUrl: generated.labelUrl ?? null,
         generatedAt: new Date(),
       },
     });
