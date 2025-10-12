@@ -16,6 +16,7 @@ model User {
   orders    Order[]
   roles     Role[]   @relation("UserRoles")
   onboarding OnboardingState?
+  webhookSubscriptions WebhookSubscription[]
 }
 
 model Order {
@@ -32,6 +33,7 @@ model Order {
   carrier   Carrier?   @relation(fields: [carrierId], references: [id])
   shipments Shipment[]
   returns   Return[]     @relation("OrderReturns")
+  codRemittance CodRemittance?
 }
 
 model Carrier {
@@ -79,6 +81,9 @@ model Shipment {
   carrier Carrier @relation(fields: [carrierId], references: [id])
   label   ShippingLabel?
   trackingEvents TrackingEvent[]
+  pickup  Pickup?
+  manifestItems ManifestItem[]
+  ndrCase NdrCase?
 }
 
 enum ShipmentStatus {
@@ -142,6 +147,74 @@ model Return {
   updatedAt         DateTime     @updatedAt
 
   order             Order         @relation("OrderReturns", fields: [orderId], references: [id])
+}
+
+model Pickup {
+  id           Int       @id @default(autoincrement())
+  shipmentId   Int       @unique
+  scheduledAt  DateTime
+  confirmedAt  DateTime?
+  status       String    @default("SCHEDULED")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+}
+
+model Manifest {
+  id           Int       @id @default(autoincrement())
+  manifestNo   String    @unique
+  createdAt    DateTime  @default(now())
+  items        ManifestItem[]
+}
+
+model ManifestItem {
+  id           Int       @id @default(autoincrement())
+  manifestId   Int
+  shipmentId   Int
+  createdAt    DateTime  @default(now())
+
+  manifest     Manifest  @relation(fields: [manifestId], references: [id])
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+  @@unique([manifestId, shipmentId])
+}
+
+model NdrCase {
+  id           Int       @id @default(autoincrement())
+  shipmentId   Int       @unique
+  reason       String
+  status       String    @default("OPEN")
+  actionNotes  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+}
+
+model CodRemittance {
+  id           Int       @id @default(autoincrement())
+  orderId      Int       @unique
+  amount       Float
+  remittedAt   DateTime?
+  status       String    @default("PENDING")
+  referenceId  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  order        Order     @relation(fields: [orderId], references: [id])
+}
+
+model WebhookSubscription {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  event        String
+  targetUrl    String
+  secret       String?
+  createdAt    DateTime  @default(now())
+  active       Boolean   @default(true)
+
+  user         User      @relation(fields: [userId], references: [id])
+  @@index([userId, event])
 }
 
 enum ReturnStatus {

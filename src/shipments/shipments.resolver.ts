@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql';
 import { Shipment, ShipmentStatus } from './shipment.model';
 import { ShipmentsService } from './shipments.service';
 import { CreateShipmentInput } from './create-shipment.input';
@@ -26,6 +26,18 @@ export class ShipmentsResolver {
   async getShipments(): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.getShipments();
     return shipments.map(ship => this.mapShipment(ship));
+  }
+
+  @ResolveField(() => ShippingLabel, { nullable: true })
+  async label(@Parent() shipment: Shipment) {
+    const data = await this.shipmentsService['prisma'].shippingLabel.findUnique({ where: { shipmentId: shipment.id } });
+    return data ?? null;
+  }
+
+  @ResolveField(() => [TrackingEvent], { nullable: 'itemsAndList' })
+  async trackingEvents(@Parent() shipment: Shipment) {
+    const events = await this.shipmentsService['prisma'].trackingEvent.findMany({ where: { shipmentId: shipment.id }, orderBy: { occurredAt: 'asc' } });
+    return events ?? [];
   }
 
   /**

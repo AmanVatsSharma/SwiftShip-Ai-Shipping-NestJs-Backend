@@ -20,6 +20,11 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { PickupsModule } from './pickups/pickups.module';
+import { ManifestsModule } from './manifests/manifests.module';
+import { NdrModule } from './ndr/ndr.module';
+import { CodModule } from './cod/cod.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -57,6 +62,11 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     RolesModule,
     AuthModule,
     OnboardingModule,
+    PickupsModule,
+    ManifestsModule,
+    NdrModule,
+    CodModule,
+    WebhooksModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
