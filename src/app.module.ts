@@ -25,6 +25,7 @@ import { ManifestsModule } from './manifests/manifests.module';
 import { NdrModule } from './ndr/ndr.module';
 import { CodModule } from './cod/cod.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { RateShopModule } from './rate-shop/rate-shop.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     NdrModule,
     CodModule,
     WebhooksModule,
+    RateShopModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

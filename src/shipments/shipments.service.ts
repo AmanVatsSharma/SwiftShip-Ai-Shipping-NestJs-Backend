@@ -8,10 +8,15 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateLabelInput } from './create-label.input';
 import { IngestTrackingInput } from './ingest-tracking.input';
 import { CarrierAdapterService } from '../carriers/carrier-adapter.service';
+import { RateShopService } from '../rate-shop/rate-shop.service';
 
 @Injectable()
 export class ShipmentsService {
-  constructor(private prisma: PrismaService, private carrierAdapters: CarrierAdapterService) {}
+  constructor(
+    private prisma: PrismaService,
+    private carrierAdapters: CarrierAdapterService,
+    private rateShop: RateShopService,
+  ) {}
 
   async getShipment(id: number): Promise<ShipmentEntity> {
     const shipment = await this.prisma.shipment.findUnique({ where: { id } });
@@ -143,8 +148,19 @@ export class ShipmentsService {
   async createLabel(input: CreateLabelInput) {
     const shipment = await this.getShipment(input.shipmentId);
     // Fallback deterministic label number for now
-    const carrier = await this.prisma.carrier.findUnique({ where: { id: shipment.carrierId } });
+    let carrier = await this.prisma.carrier.findUnique({ where: { id: shipment.carrierId } });
     if (!carrier) throw new BadRequestException(`Carrier with ID ${shipment.carrierId} not found`);
+    // Rate shop can override carrier selection when carrier is placeholder or policy enforces best
+    try {
+      const decision = await this.rateShop.shop({ originPincode: '000000', destinationPincode: '000000', weightGrams: 500 });
+      if (decision) {
+        const decided = await this.prisma.carrier.findUnique({ where: { id: decision.carrierId } });
+        if (decided) carrier = decided;
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[ShipmentsService] Rate shop failed, using original carrier', (e as Error).message);
+    }
     const adapter = this.carrierAdapters.getAdapter(carrier.name) ?? this.carrierAdapters.getAdapter('SANDBOX');
     const generated = await adapter!.generateLabel({ shipmentId: shipment.id, trackingNumber: shipment.trackingNumber, format: (input.format as any) ?? 'PDF' });
     const label = await this.prisma.shippingLabel.create({
