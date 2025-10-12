@@ -5,7 +5,7 @@ This module now supports:
 - Ingesting tracking events and auto-advancing shipment status
 - Real-time events via WebSocket: `labelCreated`, `trackingEvent`, `shipmentUpdate`
 
-Carrier adapter pattern added with a `SANDBOX` adapter; replace with real carrier implementations.
+Carrier adapter pattern added with a `SANDBOX` adapter and `DELHIVERY` (placeholder) adapter; set `DELHIVERY_TOKEN` in env and set carrier name to `DELHIVERY` to use it.
 
 ## GraphQL examples
 ```graphql

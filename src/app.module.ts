@@ -36,6 +36,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
         SHOPIFY_SCOPES: Joi.string().optional(),
         JWT_SECRET: Joi.string().default('dev-secret'),
         JWT_EXPIRES_IN: Joi.string().default('15m'),
+        DELHIVERY_TOKEN: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({
