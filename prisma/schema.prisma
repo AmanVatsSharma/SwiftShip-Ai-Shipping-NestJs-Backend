@@ -77,6 +77,8 @@ model Shipment {
 
   order   Order   @relation(fields: [orderId], references: [id])
   carrier Carrier @relation(fields: [carrierId], references: [id])
+  label   ShippingLabel?
+  trackingEvents TrackingEvent[]
 }
 
 enum ShipmentStatus {
@@ -85,6 +87,48 @@ enum ShipmentStatus {
   IN_TRANSIT
   DELIVERED
   CANCELLED
+}
+
+/// Status of a shipping label lifecycle
+enum LabelStatus {
+  PENDING
+  GENERATED
+  FAILED
+  VOIDED
+}
+
+model ShippingLabel {
+  id           Int         @id @default(autoincrement())
+  shipmentId   Int         @unique
+  labelNumber  String      @unique
+  carrierCode  String
+  serviceName  String?
+  format       String?     // e.g., PDF, ZPL
+  labelUrl     String?
+  status       LabelStatus @default(PENDING)
+  requestedAt  DateTime    @default(now())
+  generatedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  shipment     Shipment    @relation(fields: [shipmentId], references: [id])
+}
+
+model TrackingEvent {
+  id             Int       @id @default(autoincrement())
+  shipmentId     Int
+  trackingNumber String
+  status         String
+  subStatus      String?
+  description    String?
+  eventCode      String?
+  location       String?
+  occurredAt     DateTime
+  raw            Json?
+  createdAt      DateTime  @default(now())
+
+  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
+  @@index([shipmentId, occurredAt])
 }
 
 model Return {

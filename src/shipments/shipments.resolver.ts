@@ -5,6 +5,9 @@ import { CreateShipmentInput } from './create-shipment.input';
 import { UpdateShipmentInput } from './update-shipment.input';
 import { ShipmentsGateway } from './shipments.gateway';
 import { ShipmentsFilterInput } from './shipments-filter.input';
+import { CreateLabelInput } from './create-label.input';
+import { TrackingEvent, ShippingLabel } from './shipment.model';
+import { IngestTrackingInput } from './ingest-tracking.input';
 
 @Resolver(() => Shipment)
 export class ShipmentsResolver {
@@ -72,6 +75,28 @@ export class ShipmentsResolver {
     const shipment = await this.shipmentsService.updateShipment(updateShipmentInput);
     this.shipmentsGateway.notifyShipmentUpdate(shipment);
     return this.mapShipment(shipment);
+  }
+
+  @Mutation(() => ShippingLabel, { description: 'Generate a shipping label for a shipment' })
+  async createShippingLabel(
+    @Args('createLabelInput') input: CreateLabelInput
+  ) {
+    const label = await this.shipmentsService.createLabel(input);
+    // eslint-disable-next-line no-console
+    console.log('[ShipmentsResolver] Label created', label);
+    this.shipmentsGateway.server.emit('labelCreated', label);
+    return label;
+  }
+
+  @Mutation(() => TrackingEvent, { description: 'Ingest a tracking event for a shipment' })
+  async ingestTrackingEvent(
+    @Args('ingestTrackingInput') input: IngestTrackingInput
+  ) {
+    const event = await this.shipmentsService.ingestTracking(input);
+    // eslint-disable-next-line no-console
+    console.log('[ShipmentsResolver] Tracking event ingested', event);
+    this.shipmentsGateway.server.emit('trackingEvent', event);
+    return event;
   }
 
   /**

@@ -53,6 +53,8 @@ type Shipment {
   deliveredAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
+  label: ShippingLabel
+  trackingEvents: [TrackingEvent!]
 }
 
 enum ShipmentStatus {
@@ -61,6 +63,42 @@ enum ShipmentStatus {
   IN_TRANSIT
   DELIVERED
   CANCELLED
+}
+
+enum LabelStatus {
+  PENDING
+  GENERATED
+  FAILED
+  VOIDED
+}
+
+type ShippingLabel {
+  id: Int!
+  shipmentId: Int!
+  labelNumber: String!
+  carrierCode: String!
+  serviceName: String
+  format: String
+  labelUrl: String
+  status: LabelStatus!
+  requestedAt: DateTime!
+  generatedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type TrackingEvent {
+  id: Int!
+  shipmentId: Int!
+  trackingNumber: String!
+  status: String!
+  subStatus: String
+  description: String
+  eventCode: String
+  location: String
+  occurredAt: DateTime!
+  raw: String
+  createdAt: DateTime!
 }
 
 type Return {
@@ -343,6 +381,12 @@ type Mutation {
     updateShipmentInput: UpdateShipmentInput!
   ): Shipment!
 
+  """Generate a shipping label for a shipment"""
+  createShippingLabel(createLabelInput: CreateLabelInput!): ShippingLabel!
+
+  """Ingest a tracking event for a shipment"""
+  ingestTrackingEvent(ingestTrackingInput: IngestTrackingInput!): TrackingEvent!
+
   """Delete a shipment (only allowed for non-delivered shipments)"""
   deleteShipment(
     """The ID of the shipment to delete"""
@@ -436,6 +480,25 @@ input UpdateShipmentInput {
   status: ShipmentStatus
   shippedAt: DateTime
   deliveredAt: DateTime
+}
+
+input CreateLabelInput {
+  shipmentId: Int!
+  """Desired label format (PDF/ZPL)"""
+  format: String
+}
+
+input IngestTrackingInput {
+  shipmentId: Int!
+  trackingNumber: String!
+  status: String!
+  subStatus: String
+  description: String
+  eventCode: String
+  location: String
+  occurredAt: DateTime!
+  """JSON string for raw payload"""
+  rawJson: String
 }
 
 input CreateReturnInput {

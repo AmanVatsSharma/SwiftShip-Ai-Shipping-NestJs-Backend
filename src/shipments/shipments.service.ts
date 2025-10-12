@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Shipment as ShipmentEntity, ShipmentStatus } from '@prisma/client';
+import { Shipment as ShipmentEntity, ShipmentStatus, LabelStatus } from '@prisma/client';
 import { CreateShipmentInput } from './create-shipment.input';
 import { UpdateShipmentInput } from './update-shipment.input';
 import { ShipmentsFilterInput } from './shipments-filter.input';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { CreateLabelInput } from './create-label.input';
+import { IngestTrackingInput } from './ingest-tracking.input';
 
 @Injectable()
 export class ShipmentsService {
@@ -135,6 +137,72 @@ export class ShipmentsService {
       }
       throw error;
     }
+  }
+
+  async createLabel(input: CreateLabelInput) {
+    const shipment = await this.getShipment(input.shipmentId);
+    // Fallback deterministic label number for now
+    const labelNumber = `LBL-${shipment.id}-${Date.now()}`;
+    const carrier = await this.prisma.carrier.findUnique({ where: { id: shipment.carrierId } });
+    if (!carrier) throw new BadRequestException(`Carrier with ID ${shipment.carrierId} not found`);
+
+    const label = await this.prisma.shippingLabel.create({
+      data: {
+        shipmentId: shipment.id,
+        labelNumber,
+        carrierCode: carrier.name,
+        serviceName: null,
+        format: input.format ?? 'PDF',
+        status: LabelStatus.GENERATED,
+        labelUrl: null,
+        generatedAt: new Date(),
+      },
+    });
+
+    // Mark shipment as SHIPPED if it was pending
+    if (shipment.status === 'PENDING') {
+      await this.prisma.shipment.update({
+        where: { id: shipment.id },
+        data: { status: 'SHIPPED', shippedAt: new Date() },
+      });
+    }
+
+    return label;
+  }
+
+  async ingestTracking(input: IngestTrackingInput) {
+    const shipment = await this.getShipment(input.shipmentId);
+    const raw = input.rawJson ? JSON.parse(input.rawJson) : undefined;
+    const event = await this.prisma.trackingEvent.create({
+      data: {
+        shipmentId: shipment.id,
+        trackingNumber: input.trackingNumber,
+        status: input.status,
+        subStatus: input.subStatus ?? null,
+        description: input.description ?? null,
+        eventCode: input.eventCode ?? null,
+        location: input.location ?? null,
+        occurredAt: new Date(input.occurredAt),
+        raw: raw as any,
+      },
+    });
+
+    // Auto-advance shipment status
+    const nextStatus = this.computeNextStatus(input.status);
+    if (nextStatus) {
+      await this.prisma.shipment.update({ where: { id: shipment.id }, data: { status: nextStatus } });
+    }
+    return event;
+  }
+
+  private computeNextStatus(status: string): ShipmentStatus | null {
+    const s = status.toLowerCase();
+    if (s.includes('in transit') || s.includes('transit')) return 'IN_TRANSIT' as ShipmentStatus;
+    if (s.includes('out for delivery')) return 'IN_TRANSIT' as ShipmentStatus;
+    if (s.includes('delivered')) return 'DELIVERED' as ShipmentStatus;
+    if (s.includes('shipped') || s.includes('pickup')) return 'SHIPPED' as ShipmentStatus;
+    if (s.includes('cancel')) return 'CANCELLED' as ShipmentStatus;
+    return null;
   }
 
   async deleteShipment(id: number): Promise<ShipmentEntity> {
