@@ -241,6 +241,14 @@ model WebhookSubscription {
   @@index([userId, event])
 }
 
+model IdempotencyKey {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  scope     String
+  result    Json?
+  createdAt DateTime @default(now())
+}
+
 enum ReturnStatus {
   REQUESTED
   APPROVED
