@@ -46,13 +46,18 @@ export class RateShopService {
     const volumetricKg = this.volumetricWeightKg(input.lengthCm, input.widthCm, input.heightCm);
     const chargeableKg = Math.max(physicalKg, volumetricKg || 0.0);
 
-    const rates = await this.prisma.shippingRate.findMany({ include: { carrier: true } });
+    const rates = await this.prisma.shippingRate.findMany({ include: { carrier: { include: { surcharges: { where: { active: true } } } } } });
     if (rates.length === 0) return null;
 
     const pref = { weightCost: 0.6, weightSla: 0.4, preferredCarriers: [] as string[], ...(input.preferences || {}) };
 
     const scored = rates.map((r) => {
-      const price = r.rate * Math.max(1, Math.ceil(chargeableKg));
+      let price = r.rate * Math.max(1, Math.ceil(chargeableKg));
+      // apply surcharges
+      (r.carrier.surcharges || []).forEach((s) => {
+        if (s.percent) price += price * (s.percent / 100);
+        if (s.flat) price += s.flat;
+      });
       const sla = r.estimatedDeliveryDays;
       const costScore = price; // lower better
       const slaScore = sla;    // lower better

@@ -43,6 +43,7 @@ import { RateShopModule } from './rate-shop/rate-shop.module';
         JWT_SECRET: Joi.string().default('dev-secret'),
         JWT_EXPIRES_IN: Joi.string().default('15m'),
         DELHIVERY_TOKEN: Joi.string().optional(),
+        REDIS_URL: Joi.string().uri().optional(),
       }),
     }),
     ThrottlerModule.forRoot({

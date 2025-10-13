@@ -45,6 +45,8 @@ model Carrier {
   orders        Order[]
   shippingRates ShippingRate[]
   shipments     Shipment[]
+  pincodeZones  PincodeZone[]
+  surcharges    RateSurcharge[]
 }
 
 enum OrderStatus {
@@ -123,6 +125,7 @@ model TrackingEvent {
   id             Int       @id @default(autoincrement())
   shipmentId     Int
   trackingNumber String
+  externalId     String?   @unique
   status         String
   subStatus      String?
   description    String?
@@ -134,6 +137,27 @@ model TrackingEvent {
 
   shipment       Shipment  @relation(fields: [shipmentId], references: [id])
   @@index([shipmentId, occurredAt])
+}
+
+model PincodeZone {
+  id        Int      @id @default(autoincrement())
+  pincode   String   @unique
+  zone      String
+  oda       Boolean  @default(false)
+  carrierId Int?
+  carrier   Carrier? @relation(fields: [carrierId], references: [id])
+}
+
+model RateSurcharge {
+  id        Int      @id @default(autoincrement())
+  carrierId Int
+  name      String
+  percent   Float?   // e.g., fuel surcharge
+  flat      Float?   // e.g., ODA flat fee
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  carrier   Carrier  @relation(fields: [carrierId], references: [id])
 }
 
 model Return {

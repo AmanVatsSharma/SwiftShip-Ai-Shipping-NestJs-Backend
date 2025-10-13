@@ -21,7 +21,13 @@ export class WebhooksController {
       const description = body?.remarks || body?.description || undefined;
       const location = body?.location || undefined;
       const occurredAt = new Date(body?.scan_date || body?.occurred_at || Date.now());
+      const externalId: string | undefined = body?.event_id || body?.id || undefined;
       if (!Number.isNaN(shipmentId) && trackingNumber) {
+        // idempotency on externalId when present
+        if (externalId) {
+          const existing = await this.prisma.trackingEvent.findUnique({ where: { externalId } });
+          if (existing) return { ok: true };
+        }
         await this.prisma.trackingEvent.create({
           data: {
             shipmentId,
@@ -32,6 +38,7 @@ export class WebhooksController {
             subStatus: null,
             eventCode: null,
             occurredAt,
+            externalId: externalId ?? null,
           },
         });
       }
