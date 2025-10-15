@@ -3,6 +3,7 @@ import { CarrierAdapter } from './adapter.interface';
 import { SandboxCarrierAdapter } from './adapters/sandbox.adapter';
 import { DelhiveryAdapter } from './adapters/delhivery.adapter';
 import { ConfigService } from '@nestjs/config';
+import { XpressbeesAdapter } from './adapters/xpressbees.adapter';
 
 @Injectable()
 export class CarrierAdapterService {
@@ -16,6 +17,9 @@ export class CarrierAdapterService {
       const delhivery = new DelhiveryAdapter(delhiveryToken);
       this.adapters.set(delhivery.code, delhivery);
     }
+    const xpressbeesToken = this.config.get<string>('XPRESSBEES_TOKEN');
+    const xpressbees = new XpressbeesAdapter(xpressbeesToken);
+    this.adapters.set(xpressbees.code, xpressbees);
   }
 
   getAdapter(code: string): CarrierAdapter | undefined {

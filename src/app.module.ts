@@ -46,6 +46,7 @@ import { SurchargesModule } from './surcharges/surcharges.module';
         JWT_EXPIRES_IN: Joi.string().default('15m'),
         DELHIVERY_TOKEN: Joi.string().optional(),
         REDIS_URL: Joi.string().uri().optional(),
+        XPRESSBEES_TOKEN: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({

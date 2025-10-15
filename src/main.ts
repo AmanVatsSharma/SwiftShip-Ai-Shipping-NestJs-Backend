@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser';
+import * as morgan from 'morgan';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,6 +11,8 @@ async function bootstrap() {
   app.use('/shopify/webhook', bodyParser.raw({ type: '*/*' }));
   // Security headers
   app.use(helmet());
+  // Request logging
+  app.use(morgan('combined'));
   // CORS
   app.enableCors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true });
   // Validation
