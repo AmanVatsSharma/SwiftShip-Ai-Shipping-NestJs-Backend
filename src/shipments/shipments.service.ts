@@ -9,6 +9,7 @@ import { CreateLabelInput } from './create-label.input';
 import { IngestTrackingInput } from './ingest-tracking.input';
 import { CarrierAdapterService } from '../carriers/carrier-adapter.service';
 import { RateShopService } from '../rate-shop/rate-shop.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
 export class ShipmentsService {
@@ -16,6 +17,7 @@ export class ShipmentsService {
     private prisma: PrismaService,
     private carrierAdapters: CarrierAdapterService,
     private rateShop: RateShopService,
+    private metrics: MetricsService,
   ) {}
 
   async getShipment(id: number): Promise<ShipmentEntity> {
@@ -187,6 +189,7 @@ export class ShipmentsService {
       });
     }
 
+    this.metrics.inc('labels_generated');
     return label;
   }
 

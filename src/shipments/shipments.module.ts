@@ -5,9 +5,10 @@ import { ShipmentsService } from './shipments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CarrierAdapterService } from '../carriers/carrier-adapter.service';
 import { RateShopModule } from '../rate-shop/rate-shop.module';
+import { MetricsModule } from '../metrics/metrics.module';
 
 @Module({
-  imports: [RateShopModule],
+  imports: [RateShopModule, MetricsModule],
   providers: [ShipmentsResolver, ShipmentsService, ShipmentsGateway, PrismaService, CarrierAdapterService],
   exports: [ShipmentsService, ShipmentsGateway],
 })

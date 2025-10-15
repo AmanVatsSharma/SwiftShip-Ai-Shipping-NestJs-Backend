@@ -381,8 +381,8 @@ type Mutation {
     updateShipmentInput: UpdateShipmentInput!
   ): Shipment!
 
-  """Generate a shipping label for a shipment"""
-  createShippingLabel(createLabelInput: CreateLabelInput!): ShippingLabel!
+  """Enqueue shipping label generation for a shipment"""
+  enqueueShippingLabel(createLabelInput: CreateLabelInput!): String!
 
   """Ingest a tracking event for a shipment"""
   ingestTrackingEvent(ingestTrackingInput: IngestTrackingInput!): TrackingEvent!

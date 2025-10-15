@@ -9,7 +9,7 @@ Carrier adapter pattern added with a `SANDBOX` adapter and `DELHIVERY` (placehol
 
 ## GraphQL examples
 ```graphql
-mutation CreateLabel { createShippingLabel(createLabelInput: { shipmentId: 1, format: "PDF" }) { id labelNumber status } }
+mutation EnqueueLabel { enqueueShippingLabel(createLabelInput: { shipmentId: 1, format: "PDF" }) }
 
 mutation Track {
   ingestTrackingEvent(ingestTrackingInput: {

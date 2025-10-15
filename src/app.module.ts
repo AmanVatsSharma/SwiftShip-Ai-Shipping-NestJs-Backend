@@ -28,6 +28,8 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { RateShopModule } from './rate-shop/rate-shop.module';
 import { ServiceabilityModule } from './serviceability/serviceability.module';
 import { SurchargesModule } from './surcharges/surcharges.module';
+import { QueuesModule } from './queues/queues.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -75,6 +77,8 @@ import { SurchargesModule } from './surcharges/surcharges.module';
     RateShopModule,
     ServiceabilityModule,
     SurchargesModule,
+    QueuesModule,
+    DashboardModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

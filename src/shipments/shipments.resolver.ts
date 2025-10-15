@@ -10,10 +10,15 @@ import { TrackingEvent, ShippingLabel } from './shipment.model';
 import { IngestTrackingInput } from './ingest-tracking.input';
 import { UseGuards } from '@nestjs/common';
 import { OnboardingGuard } from '../onboarding/onboarding.guard';
+import { LabelGenerator } from '../queues/workers/label-generator';
 
 @Resolver(() => Shipment)
 export class ShipmentsResolver {
-  constructor(private shipmentsService: ShipmentsService, private shipmentsGateway: ShipmentsGateway) {}
+  constructor(
+    private shipmentsService: ShipmentsService,
+    private shipmentsGateway: ShipmentsGateway,
+    private labelGenerator: LabelGenerator,
+  ) {}
 
   /**
    * Get all shipments in the system
@@ -92,15 +97,12 @@ export class ShipmentsResolver {
   }
 
   @UseGuards(OnboardingGuard)
-  @Mutation(() => ShippingLabel, { description: 'Generate a shipping label for a shipment' })
-  async createShippingLabel(
+  @Mutation(() => String, { description: 'Enqueue shipping label generation for a shipment' })
+  async enqueueShippingLabel(
     @Args('createLabelInput') input: CreateLabelInput
   ) {
-    const label = await this.shipmentsService.createLabel(input);
-    // eslint-disable-next-line no-console
-    console.log('[ShipmentsResolver] Label created', label);
-    this.shipmentsGateway.notifyLabelCreated(label);
-    return label;
+    await this.labelGenerator.enqueue(input.shipmentId, input.format);
+    return JSON.stringify({ enqueued: true });
   }
 
   @Mutation(() => TrackingEvent, { description: 'Ingest a tracking event for a shipment' })
