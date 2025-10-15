@@ -150,6 +150,9 @@ export class ShipmentsService {
     // Fallback deterministic label number for now
     let carrier = await this.prisma.carrier.findUnique({ where: { id: shipment.carrierId } });
     if (!carrier) throw new BadRequestException(`Carrier with ID ${shipment.carrierId} not found`);
+    // If a label already exists, return it (idempotency)
+    const existing = await this.prisma.shippingLabel.findUnique({ where: { shipmentId: shipment.id } });
+    if (existing) return existing;
     // Rate shop can override carrier selection when carrier is placeholder or policy enforces best
     try {
       const decision = await this.rateShop.shop({ originPincode: '000000', destinationPincode: '000000', weightGrams: 500 });

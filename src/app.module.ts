@@ -27,6 +27,7 @@ import { CodModule } from './cod/cod.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { RateShopModule } from './rate-shop/rate-shop.module';
 import { ServiceabilityModule } from './serviceability/serviceability.module';
+import { SurchargesModule } from './surcharges/surcharges.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ServiceabilityModule } from './serviceability/serviceability.module';
     WebhooksModule,
     RateShopModule,
     ServiceabilityModule,
+    SurchargesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
