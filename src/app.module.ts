@@ -26,6 +26,7 @@ import { NdrModule } from './ndr/ndr.module';
 import { CodModule } from './cod/cod.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { RateShopModule } from './rate-shop/rate-shop.module';
+import { ServiceabilityModule } from './serviceability/serviceability.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { RateShopModule } from './rate-shop/rate-shop.module';
     CodModule,
     WebhooksModule,
     RateShopModule,
+    ServiceabilityModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import axios from 'axios';
+import { WebhookDispatcher } from '../queues/workers/webhook-dispatcher';
 
 @Injectable()
 export class WebhooksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly dispatcher: WebhookDispatcher) {}
 
   async subscribe(userId: number, event: string, targetUrl: string, secret?: string) {
     return this.prisma.webhookSubscription.create({ data: { userId, event, targetUrl, secret } });
@@ -12,15 +12,6 @@ export class WebhooksService {
 
   async dispatch(event: string, payload: any) {
     const subs = await this.prisma.webhookSubscription.findMany({ where: { event, active: true } });
-    await Promise.all(
-      subs.map(async (s) => {
-        try {
-          await axios.post(s.targetUrl, payload, { timeout: 5000 });
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error('Webhook dispatch failed', s.targetUrl, e.message);
-        }
-      })
-    );
+    await Promise.all(subs.map((s) => this.dispatcher.enqueue(s.targetUrl, payload)));
   }
 }

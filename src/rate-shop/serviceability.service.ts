@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ServiceabilityService {
-  // TODO: Replace with courier zone matrices and ODA logic
+  constructor(private readonly prisma: PrismaService) {}
+
   async isServiceable(originPincode: string, destinationPincode: string): Promise<boolean> {
     if (!originPincode || !destinationPincode) return false;
-    // Simple stub: disallow same pincode edge-case for demo
-    return originPincode !== destinationPincode;
+    const [orig, dest] = await Promise.all([
+      this.prisma.pincodeZone.findUnique({ where: { pincode: originPincode } }),
+      this.prisma.pincodeZone.findUnique({ where: { pincode: destinationPincode } }),
+    ]);
+    if (!orig || !dest) return false;
+    // Basic rule: zones must exist; allow ODA delivery for now
+    return true;
   }
 }
