@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Headers, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -12,6 +12,18 @@ export class WebhooksController {
   async tracking(@Body() body: any, @Headers() headers: Record<string, string>) {
     // eslint-disable-next-line no-console
     console.log('[CarrierWebhook] tracking', { headers, body });
+    // Optional: simple HMAC validation if header & secret available
+    const signature = headers['x-delhivery-signature'] || headers['x-hub-signature'] || undefined;
+    const secret = process.env.DELHIVERY_WEBHOOK_SECRET || undefined;
+    if (secret && signature) {
+      try {
+        const crypto = await import('crypto');
+        const h = crypto.createHmac('sha256', secret).update(JSON.stringify(body)).digest('hex');
+        if (h !== signature) throw new UnauthorizedException('Invalid signature');
+      } catch (e) {
+        throw new UnauthorizedException('Invalid signature');
+      }
+    }
     await this.webhooks.dispatch('tracking', body);
     try {
       // Basic mapper for Delhivery-like payloads; extend per carrier

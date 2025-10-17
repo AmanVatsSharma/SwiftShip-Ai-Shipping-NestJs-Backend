@@ -6,10 +6,12 @@ import { ShipmentsService } from '../../shipments/shipments.service';
 export class LabelGenerator {
   static QUEUE = 'label-generate';
   constructor(private readonly queues: QueuesService, private readonly shipments: ShipmentsService) {
-    this.queues.createWorker(LabelGenerator.QUEUE, async (job) => {
+    const worker = this.queues.createWorker(LabelGenerator.QUEUE, async (job) => {
       const { shipmentId, format } = job.data as { shipmentId: number; format?: string };
-      await this.shipments.createLabel({ shipmentId, format } as any);
+      const label = await this.shipments.createLabel({ shipmentId, format } as any);
+      return { labelId: label.id };
     });
+    // Worker events are already logged by QueuesService
   }
 
   async enqueue(shipmentId: number, format?: string) {

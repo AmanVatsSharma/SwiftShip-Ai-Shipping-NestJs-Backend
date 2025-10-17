@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { ServiceabilityService } from './serviceability.service';
 
 export interface RateShopRequest {
@@ -31,6 +32,7 @@ export class RateShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceability: ServiceabilityService,
+    private readonly metrics: MetricsService,
   ) {}
 
   private volumetricWeightKg(lengthCm?: number, widthCm?: number, heightCm?: number) {
@@ -68,6 +70,7 @@ export class RateShopService {
 
     scored.sort((a, b) => a.combined - b.combined);
     const best = scored[0];
+    this.metrics.inc('rate_shop_decisions');
     return {
       carrierId: best.r.carrierId,
       carrierName: best.r.carrier.name,
