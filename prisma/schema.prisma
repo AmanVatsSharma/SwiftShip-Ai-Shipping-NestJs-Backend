@@ -15,6 +15,8 @@ model User {
   updatedAt DateTime @updatedAt
   orders    Order[]
   roles     Role[]   @relation("UserRoles")
+  onboarding OnboardingState?
+  webhookSubscriptions WebhookSubscription[]
 }
 
 model Order {
@@ -31,6 +33,7 @@ model Order {
   carrier   Carrier?   @relation(fields: [carrierId], references: [id])
   shipments Shipment[]
   returns   Return[]     @relation("OrderReturns")
+  codRemittance CodRemittance?
 }
 
 model Carrier {
@@ -42,6 +45,8 @@ model Carrier {
   orders        Order[]
   shippingRates ShippingRate[]
   shipments     Shipment[]
+  pincodeZones  PincodeZone[]
+  surcharges    RateSurcharge[]
 }
 
 enum OrderStatus {
@@ -76,6 +81,11 @@ model Shipment {
 
   order   Order   @relation(fields: [orderId], references: [id])
   carrier Carrier @relation(fields: [carrierId], references: [id])
+  label   ShippingLabel?
+  trackingEvents TrackingEvent[]
+  pickup  Pickup?
+  manifestItems ManifestItem[]
+  ndrCase NdrCase?
 }
 
 enum ShipmentStatus {
@@ -84,6 +94,70 @@ enum ShipmentStatus {
   IN_TRANSIT
   DELIVERED
   CANCELLED
+}
+
+/// Status of a shipping label lifecycle
+enum LabelStatus {
+  PENDING
+  GENERATED
+  FAILED
+  VOIDED
+}
+
+model ShippingLabel {
+  id           Int         @id @default(autoincrement())
+  shipmentId   Int         @unique
+  labelNumber  String      @unique
+  carrierCode  String
+  serviceName  String?
+  format       String?     // e.g., PDF, ZPL
+  labelUrl     String?
+  status       LabelStatus @default(PENDING)
+  requestedAt  DateTime    @default(now())
+  generatedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  shipment     Shipment    @relation(fields: [shipmentId], references: [id])
+}
+
+model TrackingEvent {
+  id             Int       @id @default(autoincrement())
+  shipmentId     Int
+  trackingNumber String
+  externalId     String?   @unique
+  status         String
+  subStatus      String?
+  description    String?
+  eventCode      String?
+  location       String?
+  occurredAt     DateTime
+  raw            Json?
+  createdAt      DateTime  @default(now())
+
+  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
+  @@index([shipmentId, occurredAt])
+}
+
+model PincodeZone {
+  id        Int      @id @default(autoincrement())
+  pincode   String   @unique
+  zone      String
+  oda       Boolean  @default(false)
+  carrierId Int?
+  carrier   Carrier? @relation(fields: [carrierId], references: [id])
+}
+
+model RateSurcharge {
+  id        Int      @id @default(autoincrement())
+  carrierId Int
+  name      String
+  percent   Float?   // e.g., fuel surcharge
+  flat      Float?   // e.g., ODA flat fee
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  carrier   Carrier  @relation(fields: [carrierId], references: [id])
 }
 
 model Return {
@@ -97,6 +171,82 @@ model Return {
   updatedAt         DateTime     @updatedAt
 
   order             Order         @relation("OrderReturns", fields: [orderId], references: [id])
+}
+
+model Pickup {
+  id           Int       @id @default(autoincrement())
+  shipmentId   Int       @unique
+  scheduledAt  DateTime
+  confirmedAt  DateTime?
+  status       String    @default("SCHEDULED")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+}
+
+model Manifest {
+  id           Int       @id @default(autoincrement())
+  manifestNo   String    @unique
+  createdAt    DateTime  @default(now())
+  items        ManifestItem[]
+}
+
+model ManifestItem {
+  id           Int       @id @default(autoincrement())
+  manifestId   Int
+  shipmentId   Int
+  createdAt    DateTime  @default(now())
+
+  manifest     Manifest  @relation(fields: [manifestId], references: [id])
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+  @@unique([manifestId, shipmentId])
+}
+
+model NdrCase {
+  id           Int       @id @default(autoincrement())
+  shipmentId   Int       @unique
+  reason       String
+  status       String    @default("OPEN")
+  actionNotes  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+}
+
+model CodRemittance {
+  id           Int       @id @default(autoincrement())
+  orderId      Int       @unique
+  amount       Float
+  remittedAt   DateTime?
+  status       String    @default("PENDING")
+  referenceId  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  order        Order     @relation(fields: [orderId], references: [id])
+}
+
+model WebhookSubscription {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  event        String
+  targetUrl    String
+  secret       String?
+  createdAt    DateTime  @default(now())
+  active       Boolean   @default(true)
+
+  user         User      @relation(fields: [userId], references: [id])
+  @@index([userId, event])
+}
+
+model IdempotencyKey {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  scope     String
+  result    Json?
+  createdAt DateTime @default(now())
 }
 
 enum ReturnStatus {
@@ -145,4 +295,36 @@ model Role {
   name        String   @unique
   description String?
   users       User[]   @relation("UserRoles")
+}
+
+/// Tracks account onboarding milestones (AOM) for a user
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+model OnboardingState {
+  id                     Int               @id @default(autoincrement())
+  userId                 Int               @unique
+  status                 OnboardingStatus  @default(NOT_STARTED)
+  // milestone flags
+  kycSubmitted           Boolean           @default(false)
+  kycApproved            Boolean           @default(false)
+  pickupAddressAdded     Boolean           @default(false)
+  pickupVerified         Boolean           @default(false)
+  carrierConnected       Boolean           @default(false)
+  ecommerceConnected     Boolean           @default(false)
+  paymentsConfigured     Boolean           @default(false)
+  testLabelGenerated     Boolean           @default(false)
+  firstPickupScheduled   Boolean           @default(false)
+  // computed guidance
+  nextAction             String?
+  blockedReason          String?
+  metadata               Json?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  user                   User              @relation(fields: [userId], references: [id])
 }

@@ -1,14 +1,24 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql';
 import { Shipment, ShipmentStatus } from './shipment.model';
 import { ShipmentsService } from './shipments.service';
 import { CreateShipmentInput } from './create-shipment.input';
 import { UpdateShipmentInput } from './update-shipment.input';
 import { ShipmentsGateway } from './shipments.gateway';
 import { ShipmentsFilterInput } from './shipments-filter.input';
+import { CreateLabelInput } from './create-label.input';
+import { TrackingEvent, ShippingLabel } from './shipment.model';
+import { IngestTrackingInput } from './ingest-tracking.input';
+import { UseGuards } from '@nestjs/common';
+import { OnboardingGuard } from '../onboarding/onboarding.guard';
+import { LabelGenerator } from '../queues/workers/label-generator';
 
 @Resolver(() => Shipment)
 export class ShipmentsResolver {
-  constructor(private shipmentsService: ShipmentsService, private shipmentsGateway: ShipmentsGateway) {}
+  constructor(
+    private shipmentsService: ShipmentsService,
+    private shipmentsGateway: ShipmentsGateway,
+    private labelGenerator: LabelGenerator,
+  ) {}
 
   /**
    * Get all shipments in the system
@@ -21,6 +31,18 @@ export class ShipmentsResolver {
   async getShipments(): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.getShipments();
     return shipments.map(ship => this.mapShipment(ship));
+  }
+
+  @ResolveField(() => ShippingLabel, { nullable: true })
+  async label(@Parent() shipment: Shipment) {
+    const data = await this.shipmentsService['prisma'].shippingLabel.findUnique({ where: { shipmentId: shipment.id } });
+    return data ?? null;
+  }
+
+  @ResolveField(() => [TrackingEvent], { nullable: 'itemsAndList' })
+  async trackingEvents(@Parent() shipment: Shipment) {
+    const events = await this.shipmentsService['prisma'].trackingEvent.findMany({ where: { shipmentId: shipment.id }, orderBy: { occurredAt: 'asc' } });
+    return events ?? [];
   }
 
   /**
@@ -72,6 +94,26 @@ export class ShipmentsResolver {
     const shipment = await this.shipmentsService.updateShipment(updateShipmentInput);
     this.shipmentsGateway.notifyShipmentUpdate(shipment);
     return this.mapShipment(shipment);
+  }
+
+  @UseGuards(OnboardingGuard)
+  @Mutation(() => String, { description: 'Enqueue shipping label generation for a shipment' })
+  async enqueueShippingLabel(
+    @Args('createLabelInput') input: CreateLabelInput
+  ) {
+    await this.labelGenerator.enqueue(input.shipmentId, input.format);
+    return JSON.stringify({ enqueued: true });
+  }
+
+  @Mutation(() => TrackingEvent, { description: 'Ingest a tracking event for a shipment' })
+  async ingestTrackingEvent(
+    @Args('ingestTrackingInput') input: IngestTrackingInput
+  ) {
+    const event = await this.shipmentsService.ingestTracking(input);
+    // eslint-disable-next-line no-console
+    console.log('[ShipmentsResolver] Tracking event ingested', event);
+    this.shipmentsGateway.notifyTrackingEvent(event);
+    return event;
   }
 
   /**

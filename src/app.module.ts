@@ -19,6 +19,17 @@ import { RolesModule } from './users/roles.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
+import { PickupsModule } from './pickups/pickups.module';
+import { ManifestsModule } from './manifests/manifests.module';
+import { NdrModule } from './ndr/ndr.module';
+import { CodModule } from './cod/cod.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
+import { RateShopModule } from './rate-shop/rate-shop.module';
+import { ServiceabilityModule } from './serviceability/serviceability.module';
+import { SurchargesModule } from './surcharges/surcharges.module';
+import { QueuesModule } from './queues/queues.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -35,6 +46,9 @@ import { AuthModule } from './auth/auth.module';
         SHOPIFY_SCOPES: Joi.string().optional(),
         JWT_SECRET: Joi.string().default('dev-secret'),
         JWT_EXPIRES_IN: Joi.string().default('15m'),
+        DELHIVERY_TOKEN: Joi.string().optional(),
+        REDIS_URL: Joi.string().uri().optional(),
+        XPRESSBEES_TOKEN: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({
@@ -54,6 +68,17 @@ import { AuthModule } from './auth/auth.module';
     PluginsModule,
     RolesModule,
     AuthModule,
+    OnboardingModule,
+    PickupsModule,
+    ManifestsModule,
+    NdrModule,
+    CodModule,
+    WebhooksModule,
+    RateShopModule,
+    ServiceabilityModule,
+    SurchargesModule,
+    QueuesModule,
+    DashboardModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
