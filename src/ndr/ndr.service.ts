@@ -18,4 +18,11 @@ export class NdrService {
   async closeCase(shipmentId: number, actionNotes?: string) {
     return this.prisma.ndrCase.update({ where: { shipmentId }, data: { status: 'CLOSED', actionNotes } });
   }
+
+  async analytics() {
+    const byReason = await this.prisma.ndrCase.groupBy({ by: ['reason'], _count: { reason: true } });
+    const open = await this.prisma.ndrCase.count({ where: { status: 'OPEN' } });
+    const closed = await this.prisma.ndrCase.count({ where: { status: 'CLOSED' } });
+    return { byReason, open, closed };
+  }
 }

@@ -24,7 +24,7 @@ export class QueuesService {
     const worker = new Worker(name, processor as any, { connection: this.connection });
     const events = new QueueEvents(name, { connection: this.connection });
     events.on('failed', ({ jobId, failedReason }) => console.warn(`[Queue ${name}] job ${jobId} failed: ${failedReason}`));
-    events.on('completed', ({ jobId }) => console.log(`[Queue ${name}] job ${jobId} completed`));
+    events.on('completed', ({ jobId, returnvalue }) => console.log(`[Queue ${name}] job ${jobId} completed`, returnvalue));
     return worker;
   }
 
