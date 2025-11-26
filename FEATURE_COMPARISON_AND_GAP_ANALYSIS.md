@@ -1,10 +1,20 @@
-# SwiftShip AI vs Shiprocket: Feature Comparison & Gap Analysis
+# SwiftShip AI vs Competitors: Feature Comparison & Gap Analysis
 
 ## Executive Summary
 
-This document provides a comprehensive comparison between SwiftShip AI and Shiprocket, identifies missing features, references international standards, and provides a prioritized implementation roadmap.
+This document provides a comprehensive comparison between SwiftShip AI and major competitors (Shiprocket - India, ShipStation/Shippo/EasyShip - US), identifies missing features, references international standards, and provides a prioritized implementation roadmap.
 
 **Last Updated**: December 2024
+
+## Competitors Analyzed
+
+### Indian Market
+- **Shiprocket**: Leading Indian logistics aggregator (17+ carriers, 100K+ sellers)
+
+### US Market
+- **ShipStation**: Leading US shipping platform (100+ carriers, 100K+ users)
+- **Shippo**: Developer-friendly shipping API (50+ carriers, 35K+ businesses)
+- **EasyShip**: International shipping platform (250+ carriers, global reach)
 
 ---
 
@@ -210,6 +220,91 @@ This document provides a comprehensive comparison between SwiftShip AI and Shipr
 - **Shiprocket**: GST calculation, GST reports, GST invoice generation
 - **SwiftShip AI**: ❌ Not implemented
 - **Gap**: ❌ GST compliance features
+
+---
+
+## 1.5 US Competitor Feature Inventory
+
+### ShipStation (US Market Leader)
+
+#### ✅ Multi-Carrier Integration
+- **ShipStation**: Supports 100+ carriers (USPS, FedEx, UPS, DHL, regional carriers)
+- **SwiftShip AI**: ✅ 8 carriers (Indian market focus)
+- **Gap**: ❌ US carriers, international carriers
+
+#### ✅ Advanced Automation
+- **ShipStation**: Auto-print rules, custom workflows, automation templates, conditional logic
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Complete automation engine
+
+#### ✅ Order Management
+- **ShipStation**: Advanced filtering, bulk actions, order rules, custom fields, order tags
+- **SwiftShip AI**: ✅ Basic order management
+- **Gap**: ❌ Advanced filtering, bulk actions, custom fields
+
+#### ✅ Warehouse Management
+- **ShipStation**: Multi-warehouse, inventory sync, warehouse routing, stock levels
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Complete warehouse system
+
+#### ✅ Branded Tracking Pages
+- **ShipStation**: Fully customizable tracking pages, branded emails, custom domains
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Branding features
+
+#### ✅ International Shipping
+- **ShipStation**: International rate shopping, customs forms, duty calculation, HS codes
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ International features
+
+### Shippo (Developer-Focused)
+
+#### ✅ Developer Experience
+- **Shippo**: Excellent API documentation, SDKs (Python, Ruby, PHP, Node.js), webhooks, rate limiting
+- **SwiftShip AI**: ✅ GraphQL API, basic webhooks
+- **Gap**: ❌ REST API parity, comprehensive SDKs
+
+#### ✅ Rate Shopping
+- **Shippo**: Real-time rates, rate comparison, cheapest/fastest recommendations, rate caching
+- **SwiftShip AI**: ✅ Basic rate shopping
+- **Status**: 🟡 Needs enhancement
+
+#### ✅ Label Generation
+- **Shippo**: PDF/ZPL/PNG labels, label validation, label reprint, batch label generation
+- **SwiftShip AI**: ✅ PDF/ZPL support
+- **Gap**: ❌ PNG labels, label validation, batch generation
+
+#### ✅ Address Validation
+- **Shippo**: Real-time address validation, address suggestions, international address support
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Complete address validation
+
+#### ✅ Tracking
+- **Shippo**: Real-time tracking, tracking webhooks, tracking page, SMS/Email notifications
+- **SwiftShip AI**: ✅ Real-time tracking, WebSocket
+- **Gap**: ❌ Tracking page, SMS/Email
+
+### EasyShip (International Focus)
+
+#### ✅ International Carriers
+- **EasyShip**: 250+ carriers globally, international rate comparison, multi-currency
+- **SwiftShip AI**: ✅ 8 carriers (India only)
+- **Gap**: ❌ International carriers, multi-currency
+
+#### ✅ Customs & Duties
+- **EasyShip**: Automated customs forms, duty calculation, HS code lookup, import/export compliance
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Complete customs system
+
+#### ✅ Multi-Currency
+- **EasyShip**: Multi-currency support, currency conversion, localized pricing
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Currency support
+
+#### ✅ Tax Calculation
+- **EasyShip**: Automated tax calculation, VAT/GST support, tax reports
+- **SwiftShip AI**: ❌ Not implemented
+- **Gap**: ❌ Tax system
 
 ---
 
@@ -510,6 +605,8 @@ This document provides a comprehensive comparison between SwiftShip AI and Shipr
 
 ## 5. Feature Comparison Matrix
 
+### Indian Market (vs Shiprocket)
+
 | Feature Category | Shiprocket | SwiftShip AI | Gap Status |
 |-----------------|------------|--------------|------------|
 | **Carriers** | 17+ | 8 | 🟡 Partial |
@@ -528,6 +625,20 @@ This document provides a comprehensive comparison between SwiftShip AI and Shipr
 | **API** | ✅ REST | ✅ GraphQL | 🟡 Different |
 | **Warehouse** | ✅ Full | ❌ None | 🟡 Medium |
 | **International** | ✅ Full | ❌ None | 🟡 Medium |
+
+### US Market (vs ShipStation/Shippo/EasyShip)
+
+| Feature Category | ShipStation | Shippo | EasyShip | SwiftShip AI | Gap Status |
+|-----------------|-------------|--------|---------|--------------|------------|
+| **Carriers** | 100+ | 50+ | 250+ | 8 | 🔴 Critical |
+| **Automation** | ✅ Full | ✅ Full | ✅ Full | ❌ None | 🔴 Critical |
+| **Address Validation** | ✅ Full | ✅ Full | ✅ Full | ❌ None | 🔴 Critical |
+| **International** | ✅ Full | ✅ Full | ✅ Full | ❌ None | 🔴 Critical |
+| **Warehouse** | ✅ Full | ✅ Partial | ✅ Full | ❌ None | 🟡 Medium |
+| **Branding** | ✅ Full | ✅ Partial | ✅ Partial | ❌ None | 🟡 Medium |
+| **Developer API** | ✅ REST | ✅ REST+SDKs | ✅ REST | ✅ GraphQL | 🟡 Different |
+| **Multi-Currency** | ✅ Full | ✅ Full | ✅ Full | ❌ None | 🟡 Medium |
+| **Customs** | ✅ Full | ✅ Full | ✅ Full | ❌ None | 🟡 Medium |
 
 ---
 

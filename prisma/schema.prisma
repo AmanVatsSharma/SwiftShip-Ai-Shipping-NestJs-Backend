@@ -8,22 +8,25 @@ generator client {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String?  // Hashed password (nullable for backward compatibility)
-  emailVerified Boolean @default(false)
-  emailVerificationToken String?
+  id                       Int                   @id @default(autoincrement())
+  email                    String                @unique
+  name                     String?
+  password                 String? // Hashed password (nullable for backward compatibility)
+  emailVerified            Boolean               @default(false)
+  emailVerificationToken   String?
   emailVerificationExpires DateTime?
-  passwordResetToken String?
-  passwordResetExpires DateTime?
-  lastLoginAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
-  roles     Role[]   @relation("UserRoles")
-  onboarding OnboardingState?
-  webhookSubscriptions WebhookSubscription[]
+  passwordResetToken       String?
+  passwordResetExpires     DateTime?
+  lastLoginAt              DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  orders                   Order[]
+  roles                    Role[]                @relation("UserRoles")
+  onboarding               OnboardingState?
+  webhookSubscriptions     WebhookSubscription[]
+  payments                 Payment[]
+  subscription             Subscription?
+  invoices                 Invoice[]
 }
 
 model Order {
@@ -34,21 +37,22 @@ model Order {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  userId    Int
-  user      User       @relation(fields: [userId], references: [id])
-  carrierId Int?
-  carrier   Carrier?   @relation(fields: [carrierId], references: [id])
-  shipments Shipment[]
-  returns   Return[]     @relation("OrderReturns")
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id])
+  carrierId     Int?
+  carrier       Carrier?       @relation(fields: [carrierId], references: [id])
+  shipments     Shipment[]
+  returns       Return[]       @relation("OrderReturns")
   codRemittance CodRemittance?
+  payments      Payment[]
 }
 
 model Carrier {
-  id            Int            @id @default(autoincrement())
-  name          String         @unique
+  id            Int             @id @default(autoincrement())
+  name          String          @unique
   apiKey        String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   orders        Order[]
   shippingRates ShippingRate[]
   shipments     Shipment[]
@@ -86,13 +90,13 @@ model Shipment {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  order   Order   @relation(fields: [orderId], references: [id])
-  carrier Carrier @relation(fields: [carrierId], references: [id])
-  label   ShippingLabel?
+  order          Order           @relation(fields: [orderId], references: [id])
+  carrier        Carrier         @relation(fields: [carrierId], references: [id])
+  label          ShippingLabel?
   trackingEvents TrackingEvent[]
-  pickup  Pickup?
-  manifestItems ManifestItem[]
-  ndrCase NdrCase?
+  pickup         Pickup?
+  manifestItems  ManifestItem[]
+  ndrCase        NdrCase?
 }
 
 enum ShipmentStatus {
@@ -112,27 +116,27 @@ enum LabelStatus {
 }
 
 model ShippingLabel {
-  id           Int         @id @default(autoincrement())
-  shipmentId   Int         @unique
-  labelNumber  String      @unique
-  carrierCode  String
-  serviceName  String?
-  format       String?     // e.g., PDF, ZPL
-  labelUrl     String?
-  status       LabelStatus @default(PENDING)
-  requestedAt  DateTime    @default(now())
-  generatedAt  DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id          Int         @id @default(autoincrement())
+  shipmentId  Int         @unique
+  labelNumber String      @unique
+  carrierCode String
+  serviceName String?
+  format      String? // e.g., PDF, ZPL
+  labelUrl    String?
+  status      LabelStatus @default(PENDING)
+  requestedAt DateTime    @default(now())
+  generatedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  shipment     Shipment    @relation(fields: [shipmentId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
 }
 
 model TrackingEvent {
-  id             Int       @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   shipmentId     Int
   trackingNumber String
-  externalId     String?   @unique
+  externalId     String?  @unique
   status         String
   subStatus      String?
   description    String?
@@ -140,9 +144,10 @@ model TrackingEvent {
   location       String?
   occurredAt     DateTime
   raw            Json?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime @default(now())
 
-  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+
   @@index([shipmentId, occurredAt])
 }
 
@@ -159,12 +164,12 @@ model RateSurcharge {
   id        Int      @id @default(autoincrement())
   carrierId Int
   name      String
-  percent   Float?   // e.g., fuel surcharge
-  flat      Float?   // e.g., ODA flat fee
+  percent   Float? // e.g., fuel surcharge
+  flat      Float? // e.g., ODA flat fee
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  carrier   Carrier  @relation(fields: [carrierId], references: [id])
+  carrier Carrier @relation(fields: [carrierId], references: [id])
 }
 
 model Return {
@@ -177,74 +182,76 @@ model Return {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  order             Order         @relation("OrderReturns", fields: [orderId], references: [id])
+  order Order @relation("OrderReturns", fields: [orderId], references: [id])
 }
 
 model Pickup {
-  id           Int       @id @default(autoincrement())
-  shipmentId   Int       @unique
-  scheduledAt  DateTime
-  confirmedAt  DateTime?
-  status       String    @default("SCHEDULED")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          Int       @id @default(autoincrement())
+  shipmentId  Int       @unique
+  scheduledAt DateTime
+  confirmedAt DateTime?
+  status      String    @default("SCHEDULED")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
 }
 
 model Manifest {
-  id           Int       @id @default(autoincrement())
-  manifestNo   String    @unique
-  createdAt    DateTime  @default(now())
-  items        ManifestItem[]
+  id         Int            @id @default(autoincrement())
+  manifestNo String         @unique
+  createdAt  DateTime       @default(now())
+  items      ManifestItem[]
 }
 
 model ManifestItem {
-  id           Int       @id @default(autoincrement())
-  manifestId   Int
-  shipmentId   Int
-  createdAt    DateTime  @default(now())
+  id         Int      @id @default(autoincrement())
+  manifestId Int
+  shipmentId Int
+  createdAt  DateTime @default(now())
 
-  manifest     Manifest  @relation(fields: [manifestId], references: [id])
-  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+  manifest Manifest @relation(fields: [manifestId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+
   @@unique([manifestId, shipmentId])
 }
 
 model NdrCase {
-  id           Int       @id @default(autoincrement())
-  shipmentId   Int       @unique
-  reason       String
-  status       String    @default("OPEN")
-  actionNotes  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          Int      @id @default(autoincrement())
+  shipmentId  Int      @unique
+  reason      String
+  status      String   @default("OPEN")
+  actionNotes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  shipment     Shipment  @relation(fields: [shipmentId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
 }
 
 model CodRemittance {
-  id           Int       @id @default(autoincrement())
-  orderId      Int       @unique
-  amount       Float
-  remittedAt   DateTime?
-  status       String    @default("PENDING")
-  referenceId  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          Int       @id @default(autoincrement())
+  orderId     Int       @unique
+  amount      Float
+  remittedAt  DateTime?
+  status      String    @default("PENDING")
+  referenceId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  order        Order     @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model WebhookSubscription {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  event        String
-  targetUrl    String
-  secret       String?
-  createdAt    DateTime  @default(now())
-  active       Boolean   @default(true)
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  event     String
+  targetUrl String
+  secret    String?
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
 
-  user         User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
   @@index([userId, event])
 }
 
@@ -265,29 +272,29 @@ enum ReturnStatus {
 }
 
 model ShopifyStore {
-  id          String        @id @default(uuid())
-  shopDomain  String        @unique
+  id          String         @id @default(uuid())
+  shopDomain  String         @unique
   accessToken String
-  connectedAt DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  connectedAt DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   orders      ShopifyOrder[]
 }
 
 model ShopifyOrder {
-  id              String    @id @default(uuid())
-  orderNumber     String    @unique
-  total           Float
-  status          String
-  storeId         String
+  id               String    @id @default(uuid())
+  orderNumber      String    @unique
+  total            Float
+  status           String
+  storeId          String
   shopifyCreatedAt DateTime?
-  processedAt     DateTime?
-  currency        String?
-  customerEmail   String?
-  customerName    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime? @updatedAt
-  
-  store           ShopifyStore @relation(fields: [storeId], references: [id])
+  processedAt      DateTime?
+  currency         String?
+  customerEmail    String?
+  customerName     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+
+  store ShopifyStore @relation(fields: [storeId], references: [id])
 }
 
 model ShopifyWebhookEvent {
@@ -298,10 +305,10 @@ model ShopifyWebhookEvent {
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
   description String?
-  users       User[]   @relation("UserRoles")
+  users       User[]  @relation("UserRoles")
 }
 
 /// Tracks account onboarding milestones (AOM) for a user
@@ -313,25 +320,187 @@ enum OnboardingStatus {
 }
 
 model OnboardingState {
-  id                     Int               @id @default(autoincrement())
-  userId                 Int               @unique
-  status                 OnboardingStatus  @default(NOT_STARTED)
+  id                   Int              @id @default(autoincrement())
+  userId               Int              @unique
+  status               OnboardingStatus @default(NOT_STARTED)
   // milestone flags
-  kycSubmitted           Boolean           @default(false)
-  kycApproved            Boolean           @default(false)
-  pickupAddressAdded     Boolean           @default(false)
-  pickupVerified         Boolean           @default(false)
-  carrierConnected       Boolean           @default(false)
-  ecommerceConnected     Boolean           @default(false)
-  paymentsConfigured     Boolean           @default(false)
-  testLabelGenerated     Boolean           @default(false)
-  firstPickupScheduled   Boolean           @default(false)
+  kycSubmitted         Boolean          @default(false)
+  kycApproved          Boolean          @default(false)
+  pickupAddressAdded   Boolean          @default(false)
+  pickupVerified       Boolean          @default(false)
+  carrierConnected     Boolean          @default(false)
+  ecommerceConnected   Boolean          @default(false)
+  paymentsConfigured   Boolean          @default(false)
+  testLabelGenerated   Boolean          @default(false)
+  firstPickupScheduled Boolean          @default(false)
   // computed guidance
-  nextAction             String?
-  blockedReason          String?
-  metadata               Json?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  nextAction           String?
+  blockedReason        String?
+  metadata             Json?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  user                   User              @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Payment Models
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  STRIPE
+  RAZORPAY
+}
+
+enum PaymentMethod {
+  CARD
+  UPI
+  NETBANKING
+  WALLET
+  COD
+}
+
+model Payment {
+  id               String         @id @default(uuid())
+  userId           Int
+  orderId          Int?
+  amount           Float
+  currency         String         @default("INR")
+  status           PaymentStatus  @default(PENDING)
+  gateway          PaymentGateway
+  gatewayPaymentId String? // External payment ID from gateway
+  paymentMethod    PaymentMethod?
+  metadata         Json?
+  failureReason    String?
+  refundedAmount   Float          @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  order   Order?   @relation(fields: [orderId], references: [id])
+  refunds Refund[]
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([gatewayPaymentId])
+  @@index([status])
+}
+
+model Refund {
+  id              String        @id @default(uuid())
+  paymentId       String
+  amount          Float
+  currency        String        @default("INR")
+  gatewayRefundId String? // External refund ID from gateway
+  reason          String?
+  status          PaymentStatus @default(PENDING)
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([gatewayRefundId])
+}
+
+// Subscription Models
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+  TRIALING
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                Int                @unique
+  plan                  SubscriptionPlan   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  gateway               PaymentGateway
+  gatewaySubscriptionId String? // External subscription ID
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
+  cancelledAt           DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  metadata              Json?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  invoices Invoice[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Invoice Models
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  invoiceNumber  String        @unique
+  subscriptionId String?
+  userId         Int
+  amount         Float
+  taxAmount      Float         @default(0)
+  totalAmount    Float
+  currency       String        @default("INR")
+  status         InvoiceStatus @default(DRAFT)
+  dueDate        DateTime?
+  paidAt         DateTime?
+  invoiceUrl     String? // PDF URL
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  invoiceItems InvoiceItem[]
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([invoiceNumber])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id          Int      @id @default(autoincrement())
+  invoiceId   String
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  hsnCode     String? // HSN/SAC code for GST
+  taxRate     Float    @default(0)
+  taxAmount   Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
