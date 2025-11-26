@@ -11,6 +11,13 @@ model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String?
+  password  String?  // Hashed password (nullable for backward compatibility)
+  emailVerified Boolean @default(false)
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
