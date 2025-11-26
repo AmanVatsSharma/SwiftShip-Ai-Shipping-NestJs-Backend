@@ -72,7 +72,7 @@ export class RazorpayService implements PaymentGateway {
 
     try {
       // Razorpay uses paise for INR (smallest currency unit)
-      const amountInPaise = Math.round(amount * 100);
+      const amountInPaise = Math.round(Number(amount) * 100);
 
       const order = await this.razorpay.orders.create({
         amount: amountInPaise,
@@ -88,11 +88,11 @@ export class RazorpayService implements PaymentGateway {
 
       return {
         id: order.id,
-        amount: order.amount / 100, // Convert back to major currency unit
+        amount: Number(order.amount) / 100, // Convert back to major currency unit
         currency: order.currency,
         status: this.mapRazorpayOrderStatus(order.status),
         clientSecret: order.id, // Razorpay uses order ID as client secret equivalent
-        metadata: order.notes as Record<string, any>,
+        metadata: (order.notes as Record<string, any>) || {},
       };
     } catch (error: any) {
       this.logger.error('Failed to create Razorpay payment order', {
@@ -164,7 +164,7 @@ export class RazorpayService implements PaymentGateway {
 
       this.logger.log('Razorpay refund processed', {
         refundId: refund.id,
-        amount: refund.amount / 100,
+        amount: (refund.amount || 0) / 100,
         status: refund.status,
       });
 
@@ -172,8 +172,8 @@ export class RazorpayService implements PaymentGateway {
         refundId: refund.id,
         status: this.mapRazorpayRefundStatus(refund.status),
         gatewayRefundId: refund.id,
-        amount: refund.amount / 100, // Convert back to major currency unit
-        metadata: refund.notes as Record<string, any>,
+        amount: (refund.amount || 0) / 100, // Convert back to major currency unit
+        metadata: (refund.notes as Record<string, any>) || {},
       };
     } catch (error: any) {
       this.logger.error('Failed to process Razorpay refund', {

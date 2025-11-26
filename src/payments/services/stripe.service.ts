@@ -42,7 +42,7 @@ export class StripeService implements PaymentGateway {
     }
 
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-11-17.clover',
     });
 
     this.webhookSecret = this.config.get<string>('STRIPE_WEBHOOK_SECRET') || '';
@@ -171,7 +171,8 @@ export class StripeService implements PaymentGateway {
       // For Stripe, we need to get the charge ID from the payment intent
       const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
       
-      if (!paymentIntent.latest_charge) {
+      const chargeId = paymentIntent.latest_charge;
+      if (!chargeId || typeof chargeId !== 'string') {
         throw new PaymentGatewayError(
           'Payment intent has no charge',
           'NO_CHARGE',
@@ -180,7 +181,7 @@ export class StripeService implements PaymentGateway {
       }
 
       const refundParams: Stripe.RefundCreateParams = {
-        charge: paymentIntent.latest_charge as string,
+        charge: chargeId,
         ...(amount && { amount: Math.round(amount * 100) }), // Convert to cents
         ...(reason && { reason: reason as Stripe.RefundCreateParams.Reason }),
       };
@@ -195,9 +196,9 @@ export class StripeService implements PaymentGateway {
 
       return {
         refundId: refund.id,
-        status: this.mapStripeRefundStatus(refund.status),
+        status: this.mapStripeRefundStatus(refund.status || 'pending'),
         gatewayRefundId: refund.id,
-        amount: refund.amount / 100, // Convert back to major currency unit
+        amount: (refund.amount || 0) / 100, // Convert back to major currency unit
         metadata: {},
       };
     } catch (error) {
@@ -270,7 +271,7 @@ export class StripeService implements PaymentGateway {
       type: event.type,
       paymentId,
       status,
-      metadata: event.data.object.metadata as Record<string, any>,
+      metadata: (event.data.object as any).metadata as Record<string, any> || {},
     };
   }
 
@@ -291,7 +292,9 @@ export class StripeService implements PaymentGateway {
     }
   }
 
-  private mapStripeRefundStatus(status: string): RefundResult['status'] {
+  private mapStripeRefundStatus(status: string | null | undefined): RefundResult['status'] {
+    if (!status) return 'pending';
+    
     switch (status) {
       case 'succeeded':
         return 'succeeded';
