@@ -30,6 +30,8 @@ import { ServiceabilityModule } from './serviceability/serviceability.module';
 import { SurchargesModule } from './surcharges/surcharges.module';
 import { QueuesModule } from './queues/queues.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { PaymentsModule } from './payments/payments.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +51,19 @@ import { DashboardModule } from './dashboard/dashboard.module';
         DELHIVERY_TOKEN: Joi.string().optional(),
         REDIS_URL: Joi.string().uri().optional(),
         XPRESSBEES_TOKEN: Joi.string().optional(),
+        STRIPE_SECRET_KEY: Joi.string().optional(),
+        STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+        RAZORPAY_KEY_ID: Joi.string().optional(),
+        RAZORPAY_KEY_SECRET: Joi.string().optional(),
+        RAZORPAY_WEBHOOK_SECRET: Joi.string().optional(),
+        PAYMENT_DEFAULT_GATEWAY: Joi.string().valid('STRIPE', 'RAZORPAY').optional(),
+        SENDGRID_API_KEY: Joi.string().optional(),
+        SMTP_HOST: Joi.string().optional(),
+        SMTP_PORT: Joi.number().optional(),
+        SMTP_USER: Joi.string().optional(),
+        SMTP_PASSWORD: Joi.string().optional(),
+        EMAIL_FROM: Joi.string().email().optional(),
+        EMAIL_FROM_NAME: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({
@@ -79,6 +94,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     SurchargesModule,
     QueuesModule,
     DashboardModule,
+    PaymentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

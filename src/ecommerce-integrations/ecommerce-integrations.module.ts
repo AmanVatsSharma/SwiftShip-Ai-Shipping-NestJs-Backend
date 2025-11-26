@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ecommerceIntegrationsConfig } from './ecommerce-integrations.config';
 import { EcommercePlatformFactory } from './common/factories/ecommerce-platform.factory';
 import { ShopifyModule } from './platforms/shopify/shopify.module';
+import { WooCommerceModule } from './platforms/woocommerce/woocommerce.module';
 
 /**
  * eCommerce Integrations Module
@@ -26,8 +27,8 @@ import { ShopifyModule } from './platforms/shopify/shopify.module';
     PrismaModule,
     // Platform-specific modules
     ShopifyModule,
+    WooCommerceModule,
     // Add other platform modules here in the future
-    // WooCommerceModule,
     // MagentoModule,
     // etc.
   ],
@@ -40,6 +41,7 @@ import { ShopifyModule } from './platforms/shopify/shopify.module';
     EcommercePlatformFactory,
     // Re-export platform modules
     ShopifyModule,
+    WooCommerceModule,
   ],
 })
 export class EcommerceIntegrationsModule {} 
