@@ -98,6 +98,7 @@ model Shipment {
   pickup         Pickup?
   manifestItems  ManifestItem[]
   ndrCase        NdrCase?
+  ewayBill       EwayBill?
 }
 
 enum ShipmentStatus {
@@ -540,4 +541,34 @@ model InvoiceItem {
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+}
+
+// E-way Bill Model
+model EwayBill {
+  id             Int       @id @default(autoincrement())
+  shipmentId     Int       @unique
+  ewayBillNumber String    @unique
+  consignorGstin String
+  consigneeGstin String
+  placeOfDispatch String
+  placeOfDelivery String
+  invoiceValue   Float
+  invoiceNumber  String
+  invoiceDate    DateTime
+  hsnCode       String
+  reason         String?
+  transporterId String?
+  vehicleNumber  String?
+  status         String    @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  validUntil     DateTime?
+  ewayBillUrl    String?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@index([shipmentId])
+  @@index([ewayBillNumber])
+  @@index([status])
 }

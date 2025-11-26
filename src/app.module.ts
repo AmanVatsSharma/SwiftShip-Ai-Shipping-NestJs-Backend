@@ -32,6 +32,8 @@ import { QueuesModule } from './queues/queues.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { BillingModule } from './billing/billing.module';
+import { BulkOperationsModule } from './bulk-operations/bulk-operations.module';
 
 @Module({
   imports: [
@@ -64,6 +66,9 @@ import { NotificationsModule } from './notifications/notifications.module';
         SMTP_PASSWORD: Joi.string().optional(),
         EMAIL_FROM: Joi.string().email().optional(),
         EMAIL_FROM_NAME: Joi.string().optional(),
+        APP_URL: Joi.string().uri().optional(),
+        GSTN_API_URL: Joi.string().uri().optional(),
+        GSTN_API_KEY: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({
@@ -96,6 +101,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     DashboardModule,
     PaymentsModule,
     NotificationsModule,
+    BillingModule,
+    BulkOperationsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
