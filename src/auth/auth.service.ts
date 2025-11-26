@@ -103,10 +103,13 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
-        roles: user.roles,
+        roles: user.roles.map(role => ({
+          ...role,
+          description: role.description ?? undefined,
+        })),
       },
       accessToken,
       emailVerificationToken, // Return for testing, remove in production
@@ -165,10 +168,13 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
-        roles: user.roles,
+        roles: user.roles.map(role => ({
+          ...role,
+          description: role.description ?? undefined,
+        })),
       },
       accessToken,
     };
