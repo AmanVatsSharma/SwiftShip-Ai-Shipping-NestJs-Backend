@@ -1,4 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import { Warehouse } from '../warehouses/warehouse.model';
+import { WarehouseSellerProfile } from '../warehouses/seller-profile.model';
+import { Payment } from '../payments/payment.model';
 
 /**
  * Invoice Item GraphQL Model
@@ -32,6 +35,18 @@ export class InvoiceItem {
   @Field(() => Float)
   taxAmount: number;
 
+  @Field(() => Float)
+  cgstAmount: number;
+
+  @Field(() => Float)
+  sgstAmount: number;
+
+  @Field(() => Float)
+  igstAmount: number;
+
+  @Field(() => String, { nullable: true })
+  gstType?: string;
+
   @Field(() => Date)
   createdAt: Date;
 }
@@ -50,6 +65,12 @@ export class Invoice {
   @Field(() => Int)
   userId: number;
 
+  @Field(() => Int, { nullable: true })
+  warehouseId?: number;
+
+  @Field(() => Int, { nullable: true })
+  sellerProfileId?: number;
+
   @Field(() => String, { nullable: true })
   subscriptionId?: string;
 
@@ -60,6 +81,18 @@ export class Invoice {
   taxAmount: number;
 
   @Field(() => Float)
+  cgstAmount: number;
+
+  @Field(() => Float)
+  sgstAmount: number;
+
+  @Field(() => Float)
+  igstAmount: number;
+
+  @Field(() => String, { nullable: true })
+  gstType?: string;
+
+  @Field(() => Float)
   totalAmount: number;
 
   @Field(() => String)
@@ -67,6 +100,12 @@ export class Invoice {
 
   @Field(() => String)
   status: string;
+
+  @Field(() => Int, { nullable: true })
+  sequenceNumber?: number;
+
+  @Field(() => String, { nullable: true })
+  financialYear?: string;
 
   @Field(() => Date, { nullable: true })
   dueDate?: Date;
@@ -77,8 +116,74 @@ export class Invoice {
   @Field(() => String, { nullable: true })
   invoiceUrl?: string;
 
-  @Field(() => [InvoiceItem])
-  items: InvoiceItem[];
+  @Field(() => String, { nullable: true })
+  pdfStorageKey?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerLegalName?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerGstin?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerState?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerEmail?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerPhone?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerAddressLine1?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerAddressLine2?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerCity?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerPincode?: string;
+
+  @Field(() => String, { nullable: true })
+  buyerCountry?: string;
+
+  @Field(() => String, { nullable: true })
+  gstnAckNumber?: string;
+
+  @Field(() => Date, { nullable: true })
+  gstnAckDate?: Date;
+
+  @Field(() => String, { nullable: true })
+  gstnSignedPayload?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  gstnSignatureValid?: boolean;
+
+  @Field(() => String)
+  emailDeliveryStatus: string;
+
+  @Field(() => Int)
+  emailDeliveryAttempts: number;
+
+  @Field(() => Date, { nullable: true })
+  emailDeliveredAt?: Date;
+
+  @Field(() => [InvoiceItem], { name: 'items' })
+  invoiceItems: InvoiceItem[];
+
+  @Field(() => Warehouse, { nullable: true })
+  warehouse?: Warehouse;
+
+  @Field(() => WarehouseSellerProfile, { nullable: true })
+  sellerProfile?: WarehouseSellerProfile;
+
+  @Field(() => [Payment], { nullable: true })
+  payments?: Payment[];
+
+  @Field(() => EwayBill, { nullable: true })
+  ewayBill?: EwayBill;
 
   @Field(() => Date)
   createdAt: Date;

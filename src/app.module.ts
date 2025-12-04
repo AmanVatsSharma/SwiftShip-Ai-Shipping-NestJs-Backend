@@ -35,6 +35,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { BillingModule } from './billing/billing.module';
 import { BulkOperationsModule } from './bulk-operations/bulk-operations.module';
 import { WarehousesModule } from './warehouses/warehouses.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -74,6 +75,17 @@ import { WarehousesModule } from './warehouses/warehouses.module';
         APP_URL: Joi.string().uri().optional(),
         GSTN_API_URL: Joi.string().uri().optional(),
         GSTN_API_KEY: Joi.string().optional(),
+        GSTN_CLIENT_ID: Joi.string().optional(),
+        GSTN_CLIENT_SECRET: Joi.string().optional(),
+        GSTN_SIGNATURE_SECRET: Joi.string().optional(),
+        GSTN_RETRY_ATTEMPTS: Joi.number().optional(),
+        STORAGE_DRIVER: Joi.string().valid('s3', 'stub').optional(),
+        S3_BUCKET: Joi.string().optional(),
+        S3_REGION: Joi.string().optional(),
+        S3_ENDPOINT: Joi.string().optional(),
+        S3_ACCESS_KEY_ID: Joi.string().optional(),
+        S3_SECRET_ACCESS_KEY: Joi.string().optional(),
+        S3_FORCE_PATH_STYLE: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot({
@@ -109,6 +121,7 @@ import { WarehousesModule } from './warehouses/warehouses.module';
     BillingModule,
     BulkOperationsModule,
     WarehousesModule,
+    StorageModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

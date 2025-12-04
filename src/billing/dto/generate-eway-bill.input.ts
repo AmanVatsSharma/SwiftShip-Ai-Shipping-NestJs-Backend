@@ -8,6 +8,12 @@ import { InputType, Field, Int, Float } from '@nestjs/graphql';
  */
 @InputType()
 export class GenerateEwayBillInput {
+  @Field(() => String, {
+    description: 'Linked invoice ID (prefill values from invoice)',
+    nullable: true,
+  })
+  invoiceId?: string;
+
   @Field(() => Int, { description: 'Shipment ID' })
   shipmentId: number;
 

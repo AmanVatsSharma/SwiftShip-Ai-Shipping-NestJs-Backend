@@ -65,6 +65,7 @@ export class PaymentResolver {
       input.currency || 'INR',
       input.gateway,
       input.orderId,
+      input.invoiceId,
       input.metadata,
     );
 

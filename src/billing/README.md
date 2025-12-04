@@ -4,6 +4,36 @@
 
 The Billing Module handles all billing-related functionality including invoice generation, PDF creation, GST calculation, and E-way bill management for India.
 
+### Invoice + Compliance Flow (High-Level)
+
+```
+┌────────────────┐
+│Seller Profile  │ 1. Warehouse-level metadata (GSTIN, bank, branding)
+└──────┬─────────┘
+       │
+       ▼
+┌───────────────┐     2. Draft invoice + GST split    ┌──────────────────────────┐
+│Invoice Service│────────────────────────────────────▶│Sequential # + audit trail│
+└──────┬────────┘                                     └─────────┬────────────────┘
+       │                                                       │
+       │3. Render PDF (PdfService)                             │
+       ▼                                                       │
+┌────────────────────────┐                                     │
+│StorageService (S3/stub)│◀────────────────────────────────────┘
+└──────┬────────────────┘
+       │4. GSTN client + signature verification
+       ▼
+┌───────────────────────┐
+│EwayBillService (GSTN) │
+└──────┬────────────────┘
+       │5. Queue email job once invoice + EWB ready
+       ▼
+┌───────────────────────┐
+│InvoiceEmailWorker +   │
+│Notifications.EmailSvc │
+└───────────────────────┘
+```
+
 ## Features
 
 ### 1. Invoice Management ✅
@@ -32,6 +62,18 @@ The Billing Module handles all billing-related functionality including invoice g
 - Company branding support
 - Itemized billing with GST breakdown
 - Automatic PDF storage
+
+### 5. Seller Profiles & Storage ✅
+- Warehouse-scoped seller profiles (GSTIN, TAN, bank, branding) used during invoice rendering.
+- GraphQL mutations exposed via `warehouseSellerProfiles`, `createWarehouseSellerProfile`, `updateWarehouseSellerProfile`.
+- Sequential invoice numbering now scoped to `{warehouse} + {financial year}` with audit-friendly `InvoiceSequence`.
+- PDFs/E-way bills uploaded using `StorageService` (S3 compatible driver with stub fallback).
+
+### 6. GSTN Integration & Email Automation ✅
+- Live GSTN client with configurable retries, ack tracking, and HMAC signature verification.
+- E-way bill PDFs are persisted (when provided) and attached to customer emails automatically.
+- Invoice Email worker queues delivery once both invoice PDF + E-way bill exist, with retry/backoff.
+- Notifications email service now supports attachments for both SendGrid and SMTP flows.
 
 ## GraphQL API
 
@@ -200,6 +242,36 @@ query {
 }
 ```
 
+### Seller Profile Queries (Warehouses Module)
+
+```
+query {
+  warehouseSellerProfiles(warehouseId: 1) {
+    id
+    legalName
+    gstin
+    isDefault
+  }
+}
+
+mutation {
+  createWarehouseSellerProfile(input: {
+    warehouseId: 1
+    profileName: "Primary BLR"
+    legalName: "SwiftShip Logistics Pvt Ltd"
+    gstin: "29ABCDE1234F1Z5"
+    addressLine1: "Plot 4"
+    city: "Bengaluru"
+    state: "Karnataka"
+    pincode: "560001"
+    isDefault: true
+  }) {
+    id
+    isDefault
+  }
+}
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -211,6 +283,19 @@ APP_URL=http://localhost:3000
 # GSTN API Configuration (for E-way bill generation)
 GSTN_API_URL=https://ewaybillgst.gov.in
 GSTN_API_KEY=your_gstn_api_key
+GSTN_CLIENT_ID=client-id
+GSTN_CLIENT_SECRET=client-secret
+GSTN_SIGNATURE_SECRET=your_hmac_secret
+GSTN_RETRY_ATTEMPTS=3
+
+# Storage Driver
+STORAGE_DRIVER=stub # or s3
+S3_BUCKET=swiftship-billing
+S3_REGION=ap-south-1
+S3_ACCESS_KEY_ID=xxx
+S3_SECRET_ACCESS_KEY=yyy
+S3_ENDPOINT=https://s3.ap-south-1.amazonaws.com # optional
+S3_FORCE_PATH_STYLE=false
 ```
 
 ## Database Schema

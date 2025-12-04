@@ -32,6 +32,11 @@ export class CreatePaymentIntentInput {
 
   @Field({ nullable: true })
   @IsOptional()
+  @IsString()
+  invoiceId?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
   metadata?: Record<string, any>;
 }
 

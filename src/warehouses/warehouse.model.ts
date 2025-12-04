@@ -1,4 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { WarehouseSellerProfile } from './seller-profile.model';
 
 @ObjectType()
 export class WarehouseCoverage {
@@ -88,4 +89,7 @@ export class Warehouse {
 
   @Field(() => [WarehouseCoverage], { nullable: 'itemsAndList' })
   coverages?: WarehouseCoverage[] | null;
+
+  @Field(() => [WarehouseSellerProfile], { nullable: 'itemsAndList' })
+  sellerProfiles?: WarehouseSellerProfile[] | null;
 }
