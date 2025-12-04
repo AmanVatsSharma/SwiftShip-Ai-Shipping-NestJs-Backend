@@ -8,15 +8,15 @@ This note consolidates the current state of the logistics stack (orders → rate
 
 | Domain | Status | Evidence |
 | --- | --- | --- |
-| Orders & Returns | ✅ Mature | Full CRUD + validation in `src/orders` & `src/returns`, unit tests included. |
-| Shipments & Tracking | ✅ Mature | `ShipmentsService` handles life cycle, label queue, tracking ingestion, WebSocket pushes. |
+| Orders & Returns | ✅ Mature | Orders now capture destination addresses, package dims, and warehouse selection; validations live in `src/orders`. |
+| Shipments & Tracking | ✅ Mature | `ShipmentsService` ties shipments to warehouses, feeds adapters real package data, and still pushes updates via WebSockets. |
 | Carrier Adapters | ✅ (8 prod + sandbox) | `CarrierAdapterService` registers Delhivery, Xpressbees, BlueDart, DTDC, Ecom, Shadowfax, FedEx India, Gati. |
-| Rate Shopping | ⚠️ Partial | `RateShopService` ranks carriers but uses placeholder pincodes (`"000000"`) and ignores volumetric metadata from orders. |
+| Rate Shopping | ✅ Warehouse-aware | `RateShopService` consumes real origin/destination pins, volumetric weight, ODA surcharges, and per-warehouse SLA data. |
 | Billing / E-Way / GST | ⚠️ Partial | Invoice/E-way services implemented but GSTN + PDF upload still mock/stub. |
 | Payments | ⚠️ Partial | Stripe/Razorpay abstractions exist; subscription renewals not wired. |
-| Bulk Ops | ⚠️ Partial | Batch label/pickup flows exist but `generateLabelForShipment` is a stub URL. |
-| Serviceability & Addressing | ⚠️ Basic | Only pincode zone table + CRUD; no SLA/cost per zone, no ODA surcharge logic yet. |
-| Mini Warehouses / Inventory | ❌ Missing | No `Warehouse`, `Inventory`, or multi-node routing entities in Prisma schema. |
+| Bulk Ops | ✅ Real labels | Batch label generation now calls `ShipmentsService.createLabel` and returns real label URLs. |
+| Serviceability & Addressing | ✅ Coverage model | Per-warehouse coverage + ODA metadata live in `WarehouseCoverage`; serviceability service reuses it. |
+| Mini Warehouses / Inventory | ⚠️ Partial | `Warehouse`, `WarehouseStock`, `WarehouseCoverage` tables + GraphQL CRUD exist; inventory counts still basic. |
 | Automation / Notifications | ⚠️ Partial | Email templates exist, SMS/WhatsApp not integrated, webhook queue exists. |
 
 ## Current Fulfilment Flow
@@ -41,10 +41,10 @@ flowchart LR
   Notifications((Webhooks/WS))
 ```
 
-- Orders feed shipments with carrier preferences and totals (`src/orders/orders.service.ts`).
-- Rate shop picks a carrier + rate (`src/rate-shop/rate-shop.service.ts`) but currently fabricates pincodes and does not look at warehouse stock.
+- Orders carry destination addresses, package dims, and the selected warehouse (`src/orders/orders.service.ts`).
+- Rate shop picks a carrier + rate using real pins/dimensions and warehouse ODA data (`src/rate-shop/rate-shop.service.ts`).
 - Carrier adapters abstract nine couriers with retry + fallback (`src/carriers/adapters/*`).
-- Shipments manage labels/tracking, and a BullMQ worker (`src/queues/workers/label-generator.ts`) emits WebSocket events.
+- Shipments manage labels/tracking, attach to warehouses, and a BullMQ worker (`src/queues/workers/label-generator.ts`) emits WebSocket events.
 - Compliance layer adds invoices, GST splits, and mock e-way bills (`src/billing`).
 - Dashboards aggregate KPIs directly off Prisma (`src/dashboard/dashboard.service.ts`).
 
@@ -59,25 +59,21 @@ flowchart LR
 
 | Gap | Impact | Recommended Action |
 | --- | --- | --- |
-| No warehouse/inventory model | Cannot allocate orders to "mini warehouses" or enforce SLA by node. | Add `Warehouse` + `WarehouseStock` tables, associate orders/shipments with source warehouse, extend `RateShopService` to accept origin derived from warehouse. |
-| RateShop ignores real shipment data | Decisions use dummy pincodes and constant weight, so multi-node routing + ODA pricing are impossible. | Feed actual order package dims + pickup/delivery pincodes, include surcharge/pincode-zone + SLA scoring. |
-| Bulk label generation stub | Batch flow returns fake URLs; ops cannot download consolidated labels. | Replace `generateLabelForShipment` mock with call to `ShipmentsService.createLabel` and stream zipped PDFs. |
-| Serviceability only CRUD | Only tracks whether a pincode exists. No transit times, warehouse coverage, or ODA rules. | Extend schema with `zone`, `tatDays`, `odaFee`, and per-warehouse coverage to support mini warehouse planning. |
+| Inventory depth per warehouse | We track stock records but no SKU catalogue or allocation rules yet. | Add product catalog + reservation logic so warehouse stock drives auto-allocation. |
 | Compliance mocks | GSTN/E-way integrations return placeholders; invoices use hard-coded seller data. | Wire GSTN API + digital signature provider; externalize company profile per warehouse. |
-| Security hardening | Most GraphQL logistics resolvers are public; no per-user scoping. | Add `@UseGuards(GqlAuthGuard)` + tenant scoping, ensure `RolesGuard` receives roles (JWT payload currently lacks them). |
+| Security hardening | Most GraphQL logistics resolvers are public; no per-user scoping. | Add `@UseGuards(GqlAuthGuard)` + tenant scoping tied to the authenticated account. |
 | Testing coverage | Orders/returns/ecom have specs; shipments, billing, bulk ops, carriers do not. | Add unit tests for `ShipmentsService`, `RateShopService`, `Billing`, `BulkOperations`. |
 
 ## Ready for Demo vs Production
 
-- **Demo-ready**: Booking shipments across multiple couriers, ingesting tracking, generating invoices/E-way placeholders, viewing dashboards.
-- **Not yet MVP** for mini warehouses because allocation logic, warehouse topology, and SLA-aware rate shopping do not exist.
+- **Demo-ready**: Booking shipments across multiple couriers, ingesting tracking, generating invoices/E-way placeholders, viewing dashboards, and orchestrating warehouse-aware rate shopping.
+- **Not yet MVP** for mini warehouses because inventory allocation, SLA-backed promises, and compliance hookups still need polish.
 
 ## Immediate Next Steps
 
-1. Model warehouses, pickup addresses, and inventory capacity in Prisma, then attach them to orders/shipments.
-2. Pipe actual shipment dimensions + pincodes into `RateShopService` and carrier adapters instead of hard-coded values.
-3. Finish bulk label generation (call real adapter + persist label URLs/binary) and expose zipped download.
-4. Harden GraphQL security (guards + tenant scoping) before exposing to merchants.
-5. Replace GSTN/E-way mocks with real API calls and upload invoices to durable storage (S3/GCS).
+1. Layer SKU/inventory reservation logic on top of the new `WarehouseStock` table so we can auto-allocate from the best node.
+2. Harden GraphQL security (guards + tenant scoping) before exposing to merchants.
+3. Replace GSTN/E-way mocks with real API calls and upload invoices to durable storage (S3/GCS).
+4. Extend compliance + notification modules (SMS/WhatsApp) so merchants get parity with Shiprocket automations.
 
 Once these are in place we can confidently call the logistics stack MVP-ready for mini-warehouse orchestration.

@@ -1,6 +1,12 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { OrderStatus } from './order.model';
-import { IsEnum, IsInt, IsPositive, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsPositive,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 @InputType()
 export class OrdersFilterInput {
@@ -20,9 +26,15 @@ export class OrdersFilterInput {
   @IsInt({ message: 'Carrier ID must be an integer' })
   @IsPositive({ message: 'Carrier ID must be positive' })
   carrierId?: number;
-  
+
   @Field({ nullable: true })
   @IsOptional()
   @IsString({ message: 'Order number must be a string' })
   orderNumber?: string;
-} 
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Warehouse ID must be an integer' })
+  @IsPositive({ message: 'Warehouse ID must be positive' })
+  warehouseId?: number;
+}

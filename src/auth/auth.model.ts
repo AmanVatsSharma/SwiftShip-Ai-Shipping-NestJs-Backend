@@ -27,6 +27,9 @@ export class AuthPayload {
   @Field()
   accessToken: string;
 
+  @Field()
+  refreshToken: string;
+
   @Field(() => UserAuth)
   user: UserAuth;
 

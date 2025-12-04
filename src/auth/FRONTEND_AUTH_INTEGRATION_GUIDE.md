@@ -13,11 +13,9 @@ This is the handoff for the frontend (AI) team to plug SwiftShip AI's NestJS Gra
 - App-level throttling (`ThrottlerModule`, 120 req/min) + global validation pipe are already on (`src/app.module.ts`, `src/main.ts`).
 
 **Known gaps to plan around**
-1. `JwtStrategy.validate` returns `{ userId, email }`, but `RolesGuard` expects `roles` and `AuthResolver.changePassword` looks for `sub`/`id`. Until we fix backend, only rely on `userId` client-side; role-protected resolvers will always deny.
-2. `login` still lets legacy accounts sign in without a password (flagged by log warning). Disable this path before production.
-3. Email/SMS delivery is stubbed. `register` + `requestPasswordReset` return verification tokens in the response for now; never show them in UI.
-4. No refresh tokens/revocation yet. Clients must re-login when the access token expires.
-5. There is no explicit check for `emailVerified` in guards; enforce it in the UI for now.
+1. Email/SMS delivery is still stubbed. `register` + `requestPasswordReset` only expose raw tokens when `NODE_ENV !== 'production'`; in production there is no fallback UI copy.
+2. Guards still allow unverified users. Keep a client-side "limited" UI until we wire `emailVerified` enforcement.
+3. Refresh-token revocation is per-token; we revoke on use/change-password but not on logout yet.
 
 ## 2. Endpoint & Headers
 
@@ -34,7 +32,7 @@ This is the handoff for the frontend (AI) team to plug SwiftShip AI's NestJS Gra
 All payloads use the standard GraphQL request envelope:
 ```json
 {
-  "query": "mutation Login($email:String!, $password:String!) { login(email:$email, password:$password) { accessToken user { id email name emailVerified roles { id name } } } }",
+  "query": "mutation Login($email:String!, $password:String!) { login(email:$email, password:$password) { accessToken refreshToken user { id email name emailVerified roles { id name } } } }",
   "variables": { "email": "ops@example.com", "password": "Str0ngPass!" }
 }
 ```
@@ -45,7 +43,8 @@ All payloads use the standard GraphQL request envelope:
    mutation Register($email:String!, $password:String!, $name:String) {
      register(email:$email, password:$password, name:$name) {
        accessToken
-       emailVerificationToken # testing only, hide in UI
+       refreshToken
+       emailVerificationToken # non-prod only, hide in UI
        user { id email emailVerified roles { name } }
      }
    }
@@ -59,11 +58,11 @@ All payloads use the standard GraphQL request envelope:
    mutation Login($email:String!, $password:String!) {
      login(email:$email, password:$password) {
        accessToken
+       refreshToken
        user { id email name emailVerified roles { name } }
      }
    }
    ```
-   _Note_: omit `password` only until the backend removes the transition mode.
 
 ### 3.2 Authenticated calls
 Wrap every guarded query/mutation with the `Authorization` header. Example: change password.
@@ -72,7 +71,7 @@ mutation ChangePassword($current:String!, $next:String!) {
   changePassword(currentPassword:$current, newPassword:$next) { message }
 }
 ```
-The resolver currently looks for `req.user.sub` or `req.user.id`, but `JwtStrategy` only supplies `userId`. Until backend fixes this, call mutations that rely on `context.req.user` through REST fallback or patch backend.
+JWT payloads now carry `userId` + `roles`, so any guard that checks roles works without client hacks.
 
 ### 3.3 Forgotten password flow
 ```graphql
@@ -83,7 +82,22 @@ mutation Reset($token:String!, $new:String!) {
   resetPassword(token:$token, newPassword:$new) { message }
 }
 ```
-Store `resetToken` only in secure support tooling; it is returned solely because email is not wired yet.
+Store `resetToken` only in secure tooling; it only appears outside production while email is stubbed.
+
+### 3.4 Token refresh
+
+Use the `refreshTokens` mutation to rotate both tokens. Provide the refresh token from the last login/register/refresh response.
+
+```graphql
+mutation Refresh($token:String!) {
+  refreshTokens(refreshToken:$token) {
+    accessToken
+    refreshToken
+    user { id email roles { name } }
+  }
+}
+```
+Always replace the stored refresh token with the new one (rotation is enforced server-side).
 
 ## 4. Client Flow (Mermaid)
 
@@ -92,10 +106,11 @@ flowchart TD
   Start((User)) --> Register
   Register -->|success| Verify
   Verify --> Login
-  Login --> StoreToken[Store accessToken securely]
-  StoreToken --> AuthCall[Call guarded GraphQL ops with Authorization header]
+  Login --> StoreTokens[Store access + refresh tokens securely]
+  StoreTokens --> AuthCall[Call guarded GraphQL ops with Authorization header]
+  AuthCall --> Refresh[\nrefreshTokens mutation]
+  Refresh --> StoreTokens
   AuthCall --> Logout
-  Login -->|token expired| ReLogin[Prompt re-login]
   Start --> ForgotPwd[Forgot password]
   ForgotPwd --> RequestReset
   RequestReset --> ResetPwd
@@ -103,9 +118,9 @@ flowchart TD
 ```
 
 Guidelines:
-- Save `accessToken` in HTTP-only cookies or secure storage; there is no refresh token yet.
+- Keep `accessToken` in an HTTP-only cookie/local state and `refreshToken` in a secure refresh cookie or encrypted storage. Rotate both whenever you call `refreshTokens`.
 - When `login`/`register` returns `user.emailVerified=false`, keep the user in a "limited" state—some backend resolvers still allow unverified accounts.
-- Expect 401/403 for any resolver decorated with `@UseGuards(GqlAuthGuard)` once we fix the payload mismatch. Surface a friendly session-expired banner.
+- Expect 401/403 for any resolver decorated with `@UseGuards(GqlAuthGuard)` when the JWT expires or the refresh token is invalid. Surface a friendly session-expired banner and redirect to login.
 
 ## 5. Error Handling & Observability
 
@@ -115,9 +130,8 @@ Guidelines:
 
 ## 6. TODOs for Backend Alignment
 
-1. Update `JwtStrategy.validate` to return `{ id, email, roles }` so `CurrentUser` and `RolesGuard` work.
-2. Remove password-optional login path and stop returning verification/reset tokens in responses once email delivery is wired.
-3. Add refresh-token issuance + revocation (Redis or Prisma table) so the frontend can silently refresh.
-4. Enforce `emailVerified` (either in guard or per resolver) to prevent unverified access.
+1. Wire up transactional email/SMS so we can fully remove the testing-only token echoes.
+2. Enforce `emailVerified` (either in guard or per resolver) to prevent unverified access.
+3. Add an explicit logout mutation that revokes the active refresh token.
 
-Until those are done, the GraphQL contract above remains stable and is safe for frontend integration.
+With refresh tokens and role-aware JWTs live, implement the flow above end-to-end and let us know if you hit any new blockers.

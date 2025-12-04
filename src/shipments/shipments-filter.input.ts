@@ -20,4 +20,10 @@ export class ShipmentsFilterInput {
   @IsInt({ message: 'Carrier ID must be an integer' })
   @IsPositive({ message: 'Carrier ID must be positive' })
   carrierId?: number;
-} 
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Warehouse ID must be an integer' })
+  @IsPositive({ message: 'Warehouse ID must be positive' })
+  warehouseId?: number;
+}
