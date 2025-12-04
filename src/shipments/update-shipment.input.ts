@@ -1,6 +1,15 @@
-import { InputType, Field, Int } from '@nestjs/graphql';
+import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { ShipmentStatus } from './shipment.model';
-import { IsNotEmpty, IsString, IsInt, IsPositive, IsEnum, IsOptional, IsDate } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsInt,
+  IsPositive,
+  IsEnum,
+  IsOptional,
+  IsDate,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 @InputType()
@@ -32,4 +41,41 @@ export class UpdateShipmentInput {
   @IsDate({ message: 'Delivered at must be a valid date' })
   @Type(() => Date)
   deliveredAt?: Date;
-} 
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Warehouse ID must be an integer' })
+  @IsPositive({ message: 'Warehouse ID must be positive' })
+  warehouseId?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Weight must be an integer' })
+  @IsPositive({ message: 'Weight must be positive' })
+  weightGrams?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Length must be a number' })
+  lengthCm?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Width must be a number' })
+  widthCm?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Height must be a number' })
+  heightCm?: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Origin pincode must be a string' })
+  originPincode?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination pincode must be a string' })
+  destinationPincode?: string;
+}

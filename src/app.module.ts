@@ -34,13 +34,16 @@ import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { BillingModule } from './billing/billing.module';
 import { BulkOperationsModule } from './bulk-operations/bulk-operations.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
-        NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
+        NODE_ENV: Joi.string()
+          .valid('development', 'test', 'production')
+          .default('development'),
         PORT: Joi.number().default(3000),
         DATABASE_URL: Joi.string().uri().required(),
         CORS_ORIGIN: Joi.string().optional(),
@@ -58,7 +61,9 @@ import { BulkOperationsModule } from './bulk-operations/bulk-operations.module';
         RAZORPAY_KEY_ID: Joi.string().optional(),
         RAZORPAY_KEY_SECRET: Joi.string().optional(),
         RAZORPAY_WEBHOOK_SECRET: Joi.string().optional(),
-        PAYMENT_DEFAULT_GATEWAY: Joi.string().valid('STRIPE', 'RAZORPAY').optional(),
+        PAYMENT_DEFAULT_GATEWAY: Joi.string()
+          .valid('STRIPE', 'RAZORPAY')
+          .optional(),
         SENDGRID_API_KEY: Joi.string().optional(),
         SMTP_HOST: Joi.string().optional(),
         SMTP_PORT: Joi.number().optional(),
@@ -103,6 +108,7 @@ import { BulkOperationsModule } from './bulk-operations/bulk-operations.module';
     NotificationsModule,
     BillingModule,
     BulkOperationsModule,
+    WarehousesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

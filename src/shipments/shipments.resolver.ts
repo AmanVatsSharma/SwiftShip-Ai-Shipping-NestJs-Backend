@@ -1,4 +1,12 @@
-import { Resolver, Query, Mutation, Args, Int, ResolveField, Parent } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { Shipment, ShipmentStatus } from './shipment.model';
 import { ShipmentsService } from './shipments.service';
 import { CreateShipmentInput } from './create-shipment.input';
@@ -24,24 +32,28 @@ export class ShipmentsResolver {
    * Get all shipments in the system
    * @returns Array of shipment objects
    */
-  @Query(() => [Shipment], { 
+  @Query(() => [Shipment], {
     name: 'shipments',
-    description: 'Get all shipments ordered by creation date (newest first)'
+    description: 'Get all shipments ordered by creation date (newest first)',
   })
   async getShipments(): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.getShipments();
-    return shipments.map(ship => this.mapShipment(ship));
+    return shipments.map((ship) => this.mapShipment(ship));
   }
 
   @ResolveField(() => ShippingLabel, { nullable: true })
   async label(@Parent() shipment: Shipment) {
-    const data = await this.shipmentsService['prisma'].shippingLabel.findUnique({ where: { shipmentId: shipment.id } });
+    const data = await this.shipmentsService['prisma'].shippingLabel.findUnique(
+      { where: { shipmentId: shipment.id } },
+    );
     return data ?? null;
   }
 
   @ResolveField(() => [TrackingEvent], { nullable: 'itemsAndList' })
   async trackingEvents(@Parent() shipment: Shipment) {
-    const events = await this.shipmentsService['prisma'].trackingEvent.findMany({ where: { shipmentId: shipment.id }, orderBy: { occurredAt: 'asc' } });
+    const events = await this.shipmentsService['prisma'].trackingEvent.findMany(
+      { where: { shipmentId: shipment.id }, orderBy: { occurredAt: 'asc' } },
+    );
     return events ?? [];
   }
 
@@ -50,13 +62,13 @@ export class ShipmentsResolver {
    * @param id - The ID of the shipment to retrieve
    * @returns Shipment object
    */
-  @Query(() => Shipment, { 
+  @Query(() => Shipment, {
     name: 'shipment',
-    description: 'Get a specific shipment by ID'
+    description: 'Get a specific shipment by ID',
   })
   async getShipment(
-    @Args('id', { type: () => Int, description: 'The ID of the shipment' }) 
-    id: number
+    @Args('id', { type: () => Int, description: 'The ID of the shipment' })
+    id: number,
   ): Promise<Shipment> {
     const shipment = await this.shipmentsService.getShipment(id);
     return this.mapShipment(shipment);
@@ -68,13 +80,14 @@ export class ShipmentsResolver {
    * @returns The newly created shipment
    */
   @Mutation(() => Shipment, {
-    description: 'Create a new shipment'
+    description: 'Create a new shipment',
   })
   async createShipment(
-    @Args('createShipmentInput', { description: 'Shipment creation data' }) 
-    createShipmentInput: CreateShipmentInput
+    @Args('createShipmentInput', { description: 'Shipment creation data' })
+    createShipmentInput: CreateShipmentInput,
   ): Promise<Shipment> {
-    const shipment = await this.shipmentsService.createShipment(createShipmentInput);
+    const shipment =
+      await this.shipmentsService.createShipment(createShipmentInput);
     this.shipmentsGateway.notifyShipmentUpdate(shipment);
     return this.mapShipment(shipment);
   }
@@ -85,32 +98,37 @@ export class ShipmentsResolver {
    * @returns The updated shipment
    */
   @Mutation(() => Shipment, {
-    description: 'Update an existing shipment'
+    description: 'Update an existing shipment',
   })
   async updateShipment(
-    @Args('updateShipmentInput', { description: 'Shipment update data' }) 
-    updateShipmentInput: UpdateShipmentInput
+    @Args('updateShipmentInput', { description: 'Shipment update data' })
+    updateShipmentInput: UpdateShipmentInput,
   ): Promise<Shipment> {
-    const shipment = await this.shipmentsService.updateShipment(updateShipmentInput);
+    const shipment =
+      await this.shipmentsService.updateShipment(updateShipmentInput);
     this.shipmentsGateway.notifyShipmentUpdate(shipment);
     return this.mapShipment(shipment);
   }
 
   @UseGuards(OnboardingGuard)
-  @Mutation(() => String, { description: 'Enqueue shipping label generation for a shipment' })
+  @Mutation(() => String, {
+    description: 'Enqueue shipping label generation for a shipment',
+  })
   async enqueueShippingLabel(
-    @Args('createLabelInput') input: CreateLabelInput
+    @Args('createLabelInput') input: CreateLabelInput,
   ) {
     await this.labelGenerator.enqueue(input.shipmentId, input.format);
     return JSON.stringify({ enqueued: true });
   }
 
-  @Mutation(() => TrackingEvent, { description: 'Ingest a tracking event for a shipment' })
+  @Mutation(() => TrackingEvent, {
+    description: 'Ingest a tracking event for a shipment',
+  })
   async ingestTrackingEvent(
-    @Args('ingestTrackingInput') input: IngestTrackingInput
+    @Args('ingestTrackingInput') input: IngestTrackingInput,
   ) {
     const event = await this.shipmentsService.ingestTracking(input);
-    // eslint-disable-next-line no-console
+
     console.log('[ShipmentsResolver] Tracking event ingested', event);
     this.shipmentsGateway.notifyTrackingEvent(event);
     return event;
@@ -122,11 +140,14 @@ export class ShipmentsResolver {
    * @returns The deleted shipment
    */
   @Mutation(() => Shipment, {
-    description: 'Delete a shipment (only allowed for non-delivered shipments)'
+    description: 'Delete a shipment (only allowed for non-delivered shipments)',
   })
   async deleteShipment(
-    @Args('id', { type: () => Int, description: 'The ID of the shipment to delete' }) 
-    id: number
+    @Args('id', {
+      type: () => Int,
+      description: 'The ID of the shipment to delete',
+    })
+    id: number,
   ): Promise<Shipment> {
     const shipment = await this.shipmentsService.deleteShipment(id);
     this.shipmentsGateway.notifyShipmentUpdate({ ...shipment, deleted: true });
@@ -138,16 +159,18 @@ export class ShipmentsResolver {
    * @param filter - The filter criteria
    * @returns Array of shipments matching the criteria
    */
-  @Query(() => [Shipment], { 
+  @Query(() => [Shipment], {
     name: 'filterShipments',
-    description: 'Filter shipments based on status, order ID, or carrier ID'
+    description: 'Filter shipments based on status, order ID, or carrier ID',
   })
   async filterShipments(
-    @Args('shipmentsFilterInput', { description: 'Filter criteria for shipments' }) 
-    filter: ShipmentsFilterInput
+    @Args('shipmentsFilterInput', {
+      description: 'Filter criteria for shipments',
+    })
+    filter: ShipmentsFilterInput,
   ): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.filterShipments(filter);
-    return shipments.map(ship => this.mapShipment(ship));
+    return shipments.map((ship) => this.mapShipment(ship));
   }
 
   /**
@@ -155,16 +178,19 @@ export class ShipmentsResolver {
    * @param status - The status to filter by
    * @returns Array of shipments with the specified status
    */
-  @Query(() => [Shipment], { 
+  @Query(() => [Shipment], {
     name: 'shipmentsByStatus',
-    description: 'Get shipments by status'
+    description: 'Get shipments by status',
   })
   async getShipmentsByStatus(
-    @Args('status', { type: () => ShipmentStatus, description: 'The status to filter by' }) 
-    status: ShipmentStatus
+    @Args('status', {
+      type: () => ShipmentStatus,
+      description: 'The status to filter by',
+    })
+    status: ShipmentStatus,
   ): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.getShipmentsByStatus(status);
-    return shipments.map(ship => this.mapShipment(ship));
+    return shipments.map((ship) => this.mapShipment(ship));
   }
 
   /**
@@ -172,25 +198,28 @@ export class ShipmentsResolver {
    * @param orderId - The order ID to filter by
    * @returns Array of shipments for the specified order
    */
-  @Query(() => [Shipment], { 
+  @Query(() => [Shipment], {
     name: 'shipmentsByOrder',
-    description: 'Get shipments by order ID'
+    description: 'Get shipments by order ID',
   })
   async getShipmentsByOrder(
-    @Args('orderId', { type: () => Int, description: 'The order ID to filter by' }) 
-    orderId: number
+    @Args('orderId', {
+      type: () => Int,
+      description: 'The order ID to filter by',
+    })
+    orderId: number,
   ): Promise<Shipment[]> {
     const shipments = await this.shipmentsService.getShipmentsByOrder(orderId);
-    return shipments.map(ship => this.mapShipment(ship));
+    return shipments.map((ship) => this.mapShipment(ship));
   }
 
   /**
    * Get counts of shipments by status
    * @returns Record with counts for each status
    */
-  @Query(() => String, { 
+  @Query(() => String, {
     name: 'shipmentCountsByStatus',
-    description: 'Get counts of shipments by status'
+    description: 'Get counts of shipments by status',
   })
   async getShipmentCountsByStatus(): Promise<string> {
     const counts = await this.shipmentsService.countShipmentsByStatus();
@@ -209,10 +238,18 @@ export class ShipmentsResolver {
       status: shipment.status,
       orderId: shipment.orderId,
       carrierId: shipment.carrierId,
+      warehouseId: shipment.warehouseId ?? null,
       shippedAt: shipment.shippedAt,
       deliveredAt: shipment.deliveredAt,
+      originPincode: shipment.originPincode ?? null,
+      destinationPincode: shipment.destinationPincode ?? null,
+      weightGrams: shipment.weightGrams ?? null,
+      lengthCm: shipment.lengthCm ?? null,
+      widthCm: shipment.widthCm ?? null,
+      heightCm: shipment.heightCm ?? null,
       createdAt: shipment.createdAt,
       updatedAt: shipment.updatedAt,
+      warehouse: shipment.warehouse ?? null,
     };
   }
-} 
+}

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ShipmentsService } from '../../shipments/shipments.service';
 import { PickupsService } from '../../pickups/pickups.service';
@@ -7,16 +12,17 @@ import { BulkLabelGenerationInput } from '../dto/bulk-label-generation.input';
 import { BulkPickupInput } from '../dto/bulk-pickup.input';
 import { BatchOrderProcessingInput } from '../dto/batch-order-processing.input';
 import { BulkOperationResult, BulkLabelResult } from '../bulk-operations.model';
+import { CreateLabelInput } from '../../shipments/create-label.input';
 
 /**
  * Bulk Operations Service
- * 
+ *
  * Handles bulk operations for shipping:
  * - Bulk label generation
  * - Bulk pickup scheduling
  * - Batch order processing
  * - Bulk manifest generation
- * 
+ *
  * Features:
  * - Parallel processing for performance
  * - Error handling and reporting
@@ -36,14 +42,16 @@ export class BulkOperationsService {
 
   /**
    * Generate labels for multiple shipments
-   * 
+   *
    * Flow:
    * 1. Validate all shipments exist
    * 2. Generate labels in parallel
    * 3. Track successes and failures
    * 4. Return results with URLs
    */
-  async generateBulkLabels(input: BulkLabelGenerationInput): Promise<BulkLabelResult> {
+  async generateBulkLabels(
+    input: BulkLabelGenerationInput,
+  ): Promise<BulkLabelResult> {
     console.log('[BulkOperationsService] generateBulkLabels', {
       shipmentCount: input.shipmentIds.length,
       format: input.format,
@@ -54,7 +62,9 @@ export class BulkOperationsService {
     }
 
     if (input.shipmentIds.length > 100) {
-      throw new BadRequestException('Maximum 100 shipments allowed per bulk operation');
+      throw new BadRequestException(
+        'Maximum 100 shipments allowed per bulk operation',
+      );
     }
 
     const successfulIds: number[] = [];
@@ -66,21 +76,25 @@ export class BulkOperationsService {
     const batchSize = 10;
     for (let i = 0; i < input.shipmentIds.length; i += batchSize) {
       const batch = input.shipmentIds.slice(i, i + batchSize);
-      
+
       // Process batch in parallel
       const results = await Promise.allSettled(
         batch.map(async (shipmentId) => {
           try {
             // Get shipment
-            const shipment = await this.shipmentsService.getShipment(shipmentId);
-            
+            const shipment =
+              await this.shipmentsService.getShipment(shipmentId);
+
             // Generate label (this should call the actual label generation service)
             // For now, we'll simulate it
-            const labelUrl = await this.generateLabelForShipment(shipmentId, input.format || 'PDF');
-            
+            const labelUrl = await this.generateLabelForShipment(
+              shipmentId,
+              input.format || 'PDF',
+            );
+
             successfulIds.push(shipmentId);
             labelUrls.push(labelUrl);
-            
+
             return { shipmentId, labelUrl };
           } catch (error: any) {
             failedIds.push(shipmentId);
@@ -118,21 +132,28 @@ export class BulkOperationsService {
    * Generate label for a single shipment
    * This should integrate with the actual label generation service
    */
-  private async generateLabelForShipment(shipmentId: number, format: string): Promise<string> {
-    // TODO: Integrate with actual label generation service
-    // For now, return a mock URL
-    return `https://api.swiftship.ai/labels/${shipmentId}.${format.toLowerCase()}`;
+  private async generateLabelForShipment(
+    shipmentId: number,
+    format: string,
+  ): Promise<string> {
+    const label = await this.shipmentsService.createLabel({
+      shipmentId,
+      format,
+    } as CreateLabelInput);
+    return label.labelUrl ?? '';
   }
 
   /**
    * Schedule bulk pickups
-   * 
+   *
    * Flow:
    * 1. Validate all shipments exist
    * 2. Schedule pickups in parallel
    * 3. Track successes and failures
    */
-  async scheduleBulkPickups(input: BulkPickupInput): Promise<BulkOperationResult> {
+  async scheduleBulkPickups(
+    input: BulkPickupInput,
+  ): Promise<BulkOperationResult> {
     console.log('[BulkOperationsService] scheduleBulkPickups', {
       shipmentCount: input.shipmentIds.length,
       scheduledAt: input.scheduledAt,
@@ -143,7 +164,9 @@ export class BulkOperationsService {
     }
 
     if (input.shipmentIds.length > 50) {
-      throw new BadRequestException('Maximum 50 shipments allowed per bulk pickup');
+      throw new BadRequestException(
+        'Maximum 50 shipments allowed per bulk pickup',
+      );
     }
 
     const successfulIds: number[] = [];
@@ -154,16 +177,19 @@ export class BulkOperationsService {
     const batchSize = 10;
     for (let i = 0; i < input.shipmentIds.length; i += batchSize) {
       const batch = input.shipmentIds.slice(i, i + batchSize);
-      
+
       const results = await Promise.allSettled(
         batch.map(async (shipmentId) => {
           try {
             // Verify shipment exists
             await this.shipmentsService.getShipment(shipmentId);
-            
+
             // Schedule pickup
-            await this.pickupsService.schedulePickup(shipmentId, input.scheduledAt);
-            
+            await this.pickupsService.schedulePickup(
+              shipmentId,
+              input.scheduledAt,
+            );
+
             successfulIds.push(shipmentId);
           } catch (error: any) {
             failedIds.push(shipmentId);
@@ -191,14 +217,16 @@ export class BulkOperationsService {
 
   /**
    * Process multiple orders in batch
-   * 
+   *
    * Flow:
    * 1. Validate all orders exist
    * 2. Create shipments for each order
    * 3. Optionally generate labels
    * 4. Track successes and failures
    */
-  async processBatchOrders(input: BatchOrderProcessingInput): Promise<BulkOperationResult> {
+  async processBatchOrders(
+    input: BatchOrderProcessingInput,
+  ): Promise<BulkOperationResult> {
     console.log('[BulkOperationsService] processBatchOrders', {
       orderCount: input.orderIds.length,
       carrierId: input.carrierId,
@@ -270,7 +298,9 @@ export class BulkOperationsService {
   /**
    * Generate manifest for multiple shipments
    */
-  async generateBulkManifest(shipmentIds: number[]): Promise<{ manifestId: number; manifestUrl?: string }> {
+  async generateBulkManifest(
+    shipmentIds: number[],
+  ): Promise<{ manifestId: number; manifestUrl?: string }> {
     console.log('[BulkOperationsService] generateBulkManifest', {
       shipmentCount: shipmentIds.length,
     });

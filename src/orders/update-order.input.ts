@@ -1,6 +1,16 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { OrderStatus } from './order.model';
-import { IsNotEmpty, IsString, IsNumber, IsEnum, IsInt, IsPositive, IsOptional, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsInt,
+  IsPositive,
+  IsOptional,
+  Min,
+  Length,
+} from 'class-validator';
 
 @InputType()
 export class UpdateOrderInput {
@@ -17,7 +27,10 @@ export class UpdateOrderInput {
 
   @Field(() => Float, { nullable: true })
   @IsOptional()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: 'Total must be a number' })
+  @IsNumber(
+    { allowNaN: false, allowInfinity: false },
+    { message: 'Total must be a number' },
+  )
   @Min(0, { message: 'Total must be greater than or equal to 0' })
   total?: number;
 
@@ -31,4 +44,74 @@ export class UpdateOrderInput {
   @IsInt({ message: 'Carrier ID must be an integer' })
   @IsPositive({ message: 'Carrier ID must be positive' })
   carrierId?: number;
-} 
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Warehouse ID must be an integer' })
+  @IsPositive({ message: 'Warehouse ID must be positive' })
+  warehouseId?: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination name must be a string' })
+  destinationName?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination phone must be a string' })
+  destinationPhone?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination address line 1 must be a string' })
+  destinationAddressLine1?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination address line 2 must be a string' })
+  destinationAddressLine2?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination city must be a string' })
+  destinationCity?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination state must be a string' })
+  destinationState?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination country must be a string' })
+  destinationCountry?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString({ message: 'Destination pincode must be a string' })
+  @Length(4, 10, {
+    message: 'Destination pincode must be between 4 and 10 characters',
+  })
+  destinationPincode?: string;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt({ message: 'Package weight must be an integer' })
+  @IsPositive({ message: 'Package weight must be positive' })
+  packageWeightGrams?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Package length must be a number' })
+  packageLengthCm?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Package width must be a number' })
+  packageWidthCm?: number;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber({}, { message: 'Package height must be a number' })
+  packageHeightCm?: number;
+}

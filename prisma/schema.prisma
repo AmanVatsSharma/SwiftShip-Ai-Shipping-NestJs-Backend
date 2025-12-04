@@ -28,6 +28,7 @@ model User {
   subscription             Subscription?
   invoices                 Invoice[]
   WooCommerceStore         WooCommerceStore[]
+  refreshTokens            RefreshToken[]
 }
 
 model Order {
@@ -42,10 +43,25 @@ model Order {
   user          User           @relation(fields: [userId], references: [id])
   carrierId     Int?
   carrier       Carrier?       @relation(fields: [carrierId], references: [id])
+  warehouseId   Int?
+  warehouse     Warehouse?     @relation(fields: [warehouseId], references: [id])
   shipments     Shipment[]
   returns       Return[]       @relation("OrderReturns")
   codRemittance CodRemittance?
   payments      Payment[]
+
+  destinationName         String?
+  destinationPhone        String?
+  destinationAddressLine1 String?
+  destinationAddressLine2 String?
+  destinationCity         String?
+  destinationState        String?
+  destinationPincode      String?
+  destinationCountry      String? @default("India")
+  packageWeightGrams      Int?
+  packageLengthCm         Float?
+  packageWidthCm          Float?
+  packageHeightCm         Float?
 }
 
 model Carrier {
@@ -81,18 +97,26 @@ model ShippingRate {
 }
 
 model Shipment {
-  id             Int            @id @default(autoincrement())
-  trackingNumber String
-  status         ShipmentStatus
-  orderId        Int
-  carrierId      Int
-  shippedAt      DateTime?
-  deliveredAt    DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                 Int            @id @default(autoincrement())
+  trackingNumber     String
+  status             ShipmentStatus
+  orderId            Int
+  carrierId          Int
+  warehouseId        Int?
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  originPincode      String?
+  destinationPincode String?
+  weightGrams        Int?
+  lengthCm           Float?
+  widthCm            Float?
+  heightCm           Float?
 
   order          Order           @relation(fields: [orderId], references: [id])
   carrier        Carrier         @relation(fields: [carrierId], references: [id])
+  warehouse      Warehouse?      @relation(fields: [warehouseId], references: [id])
   label          ShippingLabel?
   trackingEvents TrackingEvent[]
   pickup         Pickup?
@@ -160,6 +184,64 @@ model PincodeZone {
   oda       Boolean  @default(false)
   carrierId Int?
   carrier   Carrier? @relation(fields: [carrierId], references: [id])
+}
+
+model Warehouse {
+  id           Int      @id @default(autoincrement())
+  name         String
+  code         String   @unique
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  pincode      String
+  country      String   @default("India")
+  latitude     Float?
+  longitude    Float?
+  capacityCbm  Float?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders    Order[]
+  shipments Shipment[]
+  stocks    WarehouseStock[]
+  coverages WarehouseCoverage[]
+}
+
+model WarehouseStock {
+  id           Int      @id @default(autoincrement())
+  warehouseId  Int
+  sku          String
+  quantity     Int      @default(0)
+  reorderLevel Int?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId])
+  @@index([sku])
+}
+
+model WarehouseCoverage {
+  id             Int      @id @default(autoincrement())
+  warehouseId    Int
+  pincode        String
+  serviceLevel   String?
+  tatDays        Int?
+  isOda          Boolean  @default(false)
+  odaFee         Float?
+  minWeightGrams Int?
+  maxWeightGrams Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, pincode])
+  @@index([warehouseId, pincode], name: "warehouse_pincode_idx")
 }
 
 model RateSurcharge {
@@ -543,28 +625,42 @@ model InvoiceItem {
   @@index([invoiceId])
 }
 
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  token     String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 // E-way Bill Model
 model EwayBill {
-  id             Int       @id @default(autoincrement())
-  shipmentId     Int       @unique
-  ewayBillNumber String    @unique
-  consignorGstin String
-  consigneeGstin String
+  id              Int       @id @default(autoincrement())
+  shipmentId      Int       @unique
+  ewayBillNumber  String    @unique
+  consignorGstin  String
+  consigneeGstin  String
   placeOfDispatch String
   placeOfDelivery String
-  invoiceValue   Float
-  invoiceNumber  String
-  invoiceDate    DateTime
-  hsnCode       String
-  reason         String?
-  transporterId String?
-  vehicleNumber  String?
-  status         String    @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
-  validUntil     DateTime?
-  ewayBillUrl    String?
-  metadata       Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  invoiceValue    Float
+  invoiceNumber   String
+  invoiceDate     DateTime
+  hsnCode         String
+  reason          String?
+  transporterId   String?
+  vehicleNumber   String?
+  status          String    @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  validUntil      DateTime?
+  ewayBillUrl     String?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   shipment Shipment @relation(fields: [shipmentId], references: [id])
 

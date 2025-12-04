@@ -1,15 +1,22 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  Float,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { Warehouse } from '../warehouses/warehouse.model';
 
 export enum ShipmentStatus {
-  PENDING = "PENDING",
-  SHIPPED = "SHIPPED",
-  IN_TRANSIT = "IN_TRANSIT",
-  DELIVERED = "DELIVERED",
-  CANCELLED = "CANCELLED"
+  PENDING = 'PENDING',
+  SHIPPED = 'SHIPPED',
+  IN_TRANSIT = 'IN_TRANSIT',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
 }
 
 registerEnumType(ShipmentStatus, {
-  name: 'ShipmentStatus'
+  name: 'ShipmentStatus',
 });
 
 @ObjectType()
@@ -29,11 +36,32 @@ export class Shipment {
   @Field(() => Int)
   carrierId: number;
 
+  @Field(() => Int, { nullable: true })
+  warehouseId?: number | null;
+
   @Field({ nullable: true })
   shippedAt?: Date;
 
   @Field({ nullable: true })
   deliveredAt?: Date;
+
+  @Field({ nullable: true })
+  originPincode?: string | null;
+
+  @Field({ nullable: true })
+  destinationPincode?: string | null;
+
+  @Field(() => Int, { nullable: true })
+  weightGrams?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  lengthCm?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  widthCm?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  heightCm?: number | null;
 
   @Field()
   createdAt: Date;
@@ -41,12 +69,15 @@ export class Shipment {
   @Field()
   updatedAt: Date;
 
+  @Field(() => Warehouse, { nullable: true })
+  warehouse?: Warehouse | null;
+
   @Field(() => ShippingLabel, { nullable: true })
   label?: ShippingLabel | null;
 
   @Field(() => [TrackingEvent], { nullable: 'itemsAndList' })
   trackingEvents?: TrackingEvent[] | null;
-} 
+}
 
 @ObjectType()
 export class ShippingLabel {
