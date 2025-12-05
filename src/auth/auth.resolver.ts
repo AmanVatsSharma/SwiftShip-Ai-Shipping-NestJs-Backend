@@ -62,7 +62,7 @@ export class AuthResolver {
     @Args('password', { nullable: true }) password?: string,
   ): Promise<AuthPayload> {
     console.log('[AuthResolver] login', { email, hasPassword: !!password });
-    return this.authService.login(email, password);
+    return this.authService.login(email, password ?? '');
   }
 
   /**

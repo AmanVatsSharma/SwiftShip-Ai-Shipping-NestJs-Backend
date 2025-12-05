@@ -6,6 +6,13 @@ import * as handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+export interface EmailAttachment {
+  filename: string;
+  content: string;
+  type?: string;
+  disposition?: string;
+}
+
 /**
  * Email Service
  * 
@@ -89,24 +96,26 @@ export class EmailService {
     html: string,
     text?: string,
     from?: string,
+    attachments?: EmailAttachment[],
   ): Promise<boolean> {
     this.logger.log('Sending email', {
       to,
       subject,
       hasHtml: !!html,
       hasText: !!text,
+      attachmentCount: attachments?.length || 0,
     });
 
     try {
       // Try SendGrid first
       if (this.sendGridApiKey) {
-        await this.sendViaSendGrid(to, subject, html, text, from);
+        await this.sendViaSendGrid(to, subject, html, text, from, attachments);
         return true;
       }
 
       // Fallback to SMTP
       if (this.smtpTransporter) {
-        await this.sendViaSMTP(to, subject, html, text, from);
+        await this.sendViaSMTP(to, subject, html, text, from, attachments);
         return true;
       }
 
@@ -135,6 +144,7 @@ export class EmailService {
     templateName: string,
     data: Record<string, any>,
     subject?: string,
+    attachments?: EmailAttachment[],
   ): Promise<boolean> {
     this.logger.log('Sending template email', {
       to,
@@ -152,7 +162,7 @@ export class EmailService {
         ? this.renderTemplate(subject, data)
         : `SwiftShip AI - ${templateName}`;
 
-      return this.sendEmail(to, renderedSubject, html);
+      return this.sendEmail(to, renderedSubject, html, undefined, undefined, attachments);
     } catch (error) {
       this.logger.error('Failed to send template email', {
         to,
@@ -277,6 +287,7 @@ export class EmailService {
     html: string,
     text?: string,
     from?: string,
+    attachments?: EmailAttachment[],
   ): Promise<void> {
     const msg: sgMail.MailDataRequired = {
       to,
@@ -287,6 +298,16 @@ export class EmailService {
       subject,
       html,
       ...(text && { text }),
+      ...(attachments?.length
+        ? {
+            attachments: attachments.map((attachment) => ({
+              filename: attachment.filename,
+              content: attachment.content,
+              type: attachment.type || 'application/octet-stream',
+              disposition: attachment.disposition || 'attachment',
+            })),
+          }
+        : {}),
     };
 
     await sgMail.send(msg);
@@ -299,6 +320,7 @@ export class EmailService {
     html: string,
     text?: string,
     from?: string,
+    attachments?: EmailAttachment[],
   ): Promise<void> {
     if (!this.smtpTransporter) {
       throw new Error('SMTP transporter not initialized');
@@ -310,6 +332,18 @@ export class EmailService {
       subject,
       html,
       text: text || this.stripHtml(html),
+      ...(attachments?.length
+        ? {
+            attachments: attachments.map((attachment) => ({
+              filename: attachment.filename,
+              content: attachment.content,
+              contentType: attachment.type || 'application/octet-stream',
+              encoding: 'base64',
+              cid: undefined,
+              disposition: attachment.disposition || 'attachment',
+            })),
+          }
+        : {}),
     });
 
     this.logger.log('Email sent via SMTP', { to, subject });

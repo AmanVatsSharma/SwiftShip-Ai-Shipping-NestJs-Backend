@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, Float, registerEnumType } from '@nestjs/graphql';
 import { User } from '../users/entities/user.entity';
 import { Order } from '../orders/order.model';
+import { Invoice } from '../billing/billing.model';
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
@@ -37,6 +38,18 @@ registerEnumType(PaymentMethod, {
   name: 'PaymentMethod',
 });
 
+export enum PaymentReconciliationStatus {
+  NOT_APPLICABLE = 'NOT_APPLICABLE',
+  PENDING_REVIEW = 'PENDING_REVIEW',
+  MATCHED = 'MATCHED',
+  PARTIAL = 'PARTIAL',
+  MISMATCH = 'MISMATCH',
+}
+
+registerEnumType(PaymentReconciliationStatus, {
+  name: 'PaymentReconciliationStatus',
+});
+
 @ObjectType()
 export class Payment {
   @Field()
@@ -53,6 +66,12 @@ export class Payment {
 
   @Field(() => Order, { nullable: true })
   order?: Order;
+
+  @Field({ nullable: true })
+  invoiceId?: string;
+
+  @Field(() => Invoice, { nullable: true })
+  invoice?: Invoice;
 
   @Field(() => Float)
   amount: number;
@@ -77,6 +96,12 @@ export class Payment {
 
   @Field(() => Float)
   refundedAmount: number;
+
+  @Field(() => PaymentReconciliationStatus)
+  reconciliationStatus: PaymentReconciliationStatus;
+
+  @Field({ nullable: true })
+  reconciledAt?: Date;
 
   @Field(() => [Refund], { nullable: true })
   refunds?: Refund[];

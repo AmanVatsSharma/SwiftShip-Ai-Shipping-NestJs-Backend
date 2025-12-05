@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentGatewayFactory } from './payment-gateway.factory';
 import { PaymentGatewayError } from '../interfaces/payment-gateway.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { PaymentReconciliationStatus } from '@prisma/client';
 
 /**
  * Payment Service
@@ -54,6 +55,7 @@ export class PaymentService {
     currency: string,
     gateway: 'STRIPE' | 'RAZORPAY',
     orderId?: number,
+    invoiceId?: string,
     metadata?: Record<string, any>
   ) {
     this.logger.log('Creating payment intent', {
@@ -93,6 +95,33 @@ export class PaymentService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
+    let invoice: any = null;
+    if (invoiceId) {
+      invoice = await this.prisma.invoice.findUnique({
+        where: { id: invoiceId },
+      });
+
+      if (!invoice) {
+        throw new NotFoundException(`Invoice with ID ${invoiceId} not found`);
+      }
+
+      if (invoice.userId !== userId) {
+        throw new BadRequestException('Invoice does not belong to user');
+      }
+
+      if (invoice.status === 'PAID') {
+        throw new BadRequestException('Invoice already paid');
+      }
+
+      if (invoice.currency !== (currency || 'INR')) {
+        throw new BadRequestException('Invoice currency mismatch');
+      }
+
+      if (Math.abs(invoice.totalAmount - amount) > 0.01) {
+        throw new BadRequestException('Payment amount must match invoice total');
+      }
+    }
+
     try {
       // Get gateway
       const paymentGateway = this.gatewayFactory.getGateway(gateway);
@@ -114,12 +143,20 @@ export class PaymentService {
           id: uuidv4(),
           userId,
           orderId: orderId || null,
+          invoiceId: invoice?.id || null,
           amount,
           currency: currency.toUpperCase(),
           status: this.mapIntentStatusToPaymentStatus(paymentIntent.status),
           gateway: gateway as any,
           gatewayPaymentId: paymentIntent.id,
-          metadata: paymentIntent.metadata || {},
+          metadata: {
+            ...(paymentIntent.metadata || {}),
+            ...(metadata || {}),
+            invoiceId: invoice?.id,
+          },
+          reconciliationStatus: invoice
+            ? PaymentReconciliationStatus.PENDING_REVIEW
+            : PaymentReconciliationStatus.NOT_APPLICABLE,
         },
       });
 
@@ -195,12 +232,15 @@ export class PaymentService {
         });
       }
 
+      const reconciledPayment = await this.reconcileInvoicePayment(updatedPayment);
+
       this.logger.log('Payment verified', {
         paymentId,
-        status: updatedPayment.status,
+        status: reconciledPayment.status,
+        reconciliationStatus: reconciledPayment.reconciliationStatus,
       });
 
-      return updatedPayment;
+      return reconciledPayment;
     } catch (error) {
       this.logger.error('Failed to verify payment', {
         paymentId,
@@ -346,6 +386,14 @@ export class PaymentService {
             status: true,
           },
         },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            totalAmount: true,
+            status: true,
+          },
+        },
         refunds: true,
       },
     });
@@ -371,6 +419,14 @@ export class PaymentService {
             total: true,
           },
         },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            totalAmount: true,
+            status: true,
+          },
+        },
         refunds: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -384,6 +440,14 @@ export class PaymentService {
     return this.prisma.payment.findMany({
       where: { orderId },
       include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            totalAmount: true,
+            status: true,
+          },
+        },
         refunds: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -416,5 +480,96 @@ export class PaymentService {
       default:
         return 'PENDING';
     }
+  }
+
+  private async reconcileInvoicePayment(payment: any) {
+    console.log('[PaymentService] reconcileInvoicePayment', {
+      paymentId: payment.id,
+      invoiceId: payment.invoiceId,
+    });
+
+    if (!payment.invoiceId) {
+      if (payment.reconciliationStatus !== PaymentReconciliationStatus.NOT_APPLICABLE) {
+        return this.prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            reconciliationStatus: PaymentReconciliationStatus.NOT_APPLICABLE,
+            reconciledAt: null,
+          },
+        });
+      }
+      return payment;
+    }
+
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: payment.invoiceId },
+    });
+
+    if (!invoice) {
+      return this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          reconciliationStatus: PaymentReconciliationStatus.MISMATCH,
+          reconciliationMetadata: {
+            reason: 'invoice_not_found',
+          },
+        },
+      });
+    }
+
+    if (payment.status !== 'SUCCEEDED') {
+      return this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          reconciliationStatus: PaymentReconciliationStatus.PENDING_REVIEW,
+          reconciliationMetadata: {
+            reason: 'payment_not_succeeded',
+          },
+        },
+      });
+    }
+
+    const amountDelta = Number((payment.amount - invoice.totalAmount).toFixed(2));
+    let reconciliationStatus: PaymentReconciliationStatus = PaymentReconciliationStatus.MATCHED;
+
+    if (amountDelta === 0) {
+      reconciliationStatus = PaymentReconciliationStatus.MATCHED;
+    } else if (amountDelta < 0) {
+      reconciliationStatus = PaymentReconciliationStatus.PARTIAL;
+    } else {
+      reconciliationStatus = PaymentReconciliationStatus.MISMATCH;
+    }
+
+    const tx: any[] = [
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          reconciliationStatus,
+          reconciliationMetadata: {
+            ...(payment.reconciliationMetadata as Record<string, any> | null),
+            amountDelta,
+          },
+          reconciledAt: new Date(),
+        },
+      }),
+    ];
+
+    if (reconciliationStatus === PaymentReconciliationStatus.MATCHED && invoice.status !== 'PAID') {
+      tx.push(
+        this.prisma.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: 'PAID',
+            paidAt: invoice.paidAt ?? new Date(),
+          },
+        }),
+      );
+    }
+
+    await this.prisma.$transaction(tx);
+
+    return this.prisma.payment.findUnique({
+      where: { id: payment.id },
+    });
   }
 }

@@ -5,6 +5,9 @@ import { EwayBillService } from './services/eway-bill.service';
 import { GstService } from './services/gst.service';
 import { PdfService } from './services/pdf.service';
 import { BillingResolver } from './billing.resolver';
+import { QueuesModule } from '../queues/queues.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { InvoiceEmailWorker } from './services/invoice-email.worker';
 
 /**
  * Billing Module
@@ -25,6 +28,7 @@ import { BillingResolver } from './billing.resolver';
  * - GstService: For use in other modules
  */
 @Module({
+  imports: [QueuesModule, NotificationsModule],
   providers: [
     PrismaService,
     InvoiceService,
@@ -32,6 +36,7 @@ import { BillingResolver } from './billing.resolver';
     GstService,
     PdfService,
     BillingResolver,
+    InvoiceEmailWorker,
   ],
   exports: [InvoiceService, EwayBillService, GstService],
 })

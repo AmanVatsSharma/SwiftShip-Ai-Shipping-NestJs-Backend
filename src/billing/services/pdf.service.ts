@@ -49,14 +49,26 @@ export class PdfService {
           .text('TAX INVOICE', { align: 'center' })
           .moveDown();
 
+        const seller = invoice.sellerProfile;
+        const sellerAddress = [
+          seller?.addressLine1,
+          seller?.addressLine2,
+          seller?.city,
+          seller?.state,
+          seller?.pincode,
+        ]
+          .filter(Boolean)
+          .join(', ');
+        const sellerName = seller?.legalName || 'SwiftShip AI';
+        const sellerGstin = seller?.gstin || '27ABCDE1234F1Z5';
+
         // Company details (left side)
         doc
           .fontSize(12)
-          .text('SwiftShip AI', { align: 'left' })
+          .text(sellerName, { align: 'left' })
           .fontSize(10)
-          .text('123 Business Street', { align: 'left' })
-          .text('Mumbai, Maharashtra 400001', { align: 'left' })
-          .text('GSTIN: 27ABCDE1234F1Z5', { align: 'left' })
+          .text(sellerAddress || 'Billing address unavailable', { align: 'left' })
+          .text(`GSTIN: ${sellerGstin}`, { align: 'left' })
           .moveDown();
 
         // Invoice details (right side)
@@ -75,13 +87,24 @@ export class PdfService {
         doc.moveDown(2);
 
         // Bill To section
-        if (invoice.user) {
+        if (invoice.user || invoice.buyerLegalName) {
+          const buyerLines = [
+            invoice.buyerLegalName || invoice.user?.name || invoice.user?.email,
+            invoice.buyerAddressLine1,
+            invoice.buyerAddressLine2,
+            [invoice.buyerCity, invoice.buyerState, invoice.buyerPincode]
+              .filter(Boolean)
+              .join(', '),
+            invoice.buyerGstin ? `GSTIN: ${invoice.buyerGstin}` : undefined,
+          ]
+            .filter(Boolean)
+            .map((line) => line as string);
+
           doc
             .fontSize(12)
             .text('Bill To:', { underline: true })
             .fontSize(10)
-            .text(invoice.user.name || invoice.user.email)
-            .text(invoice.user.email);
+            .text(buyerLines.join('\n'));
           doc.moveDown();
         }
 
@@ -110,7 +133,8 @@ export class PdfService {
 
         // Items
         let yPosition = doc.y + 5;
-        invoice.items.forEach((item: any) => {
+        const items = invoice.invoiceItems || invoice.items || [];
+        items.forEach((item: any) => {
           doc
             .fontSize(9)
             .text(item.description.substring(0, 30), 50, yPosition)
@@ -154,14 +178,11 @@ export class PdfService {
           .moveDown(0.5);
 
         // Calculate GST type (simplified - in production, use actual GST service)
-        const isInterState = false; // TODO: Determine from addresses
-        if (isInterState) {
-          doc.text(`IGST (${invoice.taxAmount.toFixed(2)}%): ₹${invoice.taxAmount.toFixed(2)}`);
+        if (invoice.gstType === 'IGST') {
+          doc.text(`IGST: ₹${invoice.igstAmount.toFixed(2)}`);
         } else {
-          const cgst = invoice.taxAmount / 2;
-          const sgst = invoice.taxAmount / 2;
-          doc.text(`CGST (${(invoice.taxAmount / 2).toFixed(2)}%): ₹${cgst.toFixed(2)}`);
-          doc.text(`SGST (${(invoice.taxAmount / 2).toFixed(2)}%): ₹${sgst.toFixed(2)}`);
+          doc.text(`CGST: ₹${invoice.cgstAmount.toFixed(2)}`);
+          doc.text(`SGST: ₹${invoice.sgstAmount.toFixed(2)}`);
         }
 
         // Footer

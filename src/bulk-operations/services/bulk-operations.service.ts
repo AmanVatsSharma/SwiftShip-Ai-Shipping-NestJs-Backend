@@ -13,6 +13,7 @@ import { BulkPickupInput } from '../dto/bulk-pickup.input';
 import { BatchOrderProcessingInput } from '../dto/batch-order-processing.input';
 import { BulkOperationResult, BulkLabelResult } from '../bulk-operations.model';
 import { CreateLabelInput } from '../../shipments/create-label.input';
+import { ShipmentStatus } from '../../shipments/shipment.model';
 
 /**
  * Bulk Operations Service
@@ -264,7 +265,7 @@ export class BulkOperationsService {
           orderId,
           carrierId: input.carrierId || order.carrierId || 1, // Default carrier
           trackingNumber: `TRK${Date.now()}${orderId}`,
-          status: 'PENDING',
+          status: ShipmentStatus.PENDING,
         });
 
         // Optionally generate label
